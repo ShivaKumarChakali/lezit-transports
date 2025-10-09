@@ -8,8 +8,33 @@ export interface IUser {
   phone?: string; // Optional for OAuth users
   googleId?: string;
   facebookId?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'vendor' | 'driver';
   isActive: boolean;
+  // Vendor-specific fields
+  businessName?: string;
+  businessType?: 'car_rental' | 'taxi_service' | 'bus_service' | 'truck_service' | 'other';
+  businessLicense?: string;
+  businessAddress?: string;
+  // Driver-specific fields
+  licenseNumber?: string;
+  licenseExpiry?: Date;
+  vehicleType?: 'car' | 'suv' | 'van' | 'bus' | 'truck' | 'bike';
+  experience?: number;
+  rating?: number;
+  isAvailable?: boolean;
+  // Common fields for vendors and drivers
+  bankDetails?: {
+    accountNumber?: string;
+    ifscCode?: string;
+    accountHolderName?: string;
+  };
+  documents?: {
+    aadhar?: string;
+    pan?: string;
+    license?: string;
+    vehicleRC?: string;
+    insurance?: string;
+  };
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -35,6 +60,10 @@ export interface IBooking {
   paymentStatus: 'pending' | 'paid' | 'failed';
   paymentMethod?: string;
   specialInstructions?: string;
+  // Vendor and driver assignment
+  assignedVendor?: string;
+  assignedDriver?: string;
+  vehicleId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

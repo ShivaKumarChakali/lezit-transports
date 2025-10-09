@@ -101,6 +101,8 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/vendor', require('./routes/vendor').default);
+app.use('/api/driver', require('./routes/driver').default);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {

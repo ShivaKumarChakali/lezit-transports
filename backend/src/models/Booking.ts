@@ -64,6 +64,19 @@ const bookingSchema = new Schema<IBookingDocument>({
     enum: ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled'],
     default: 'pending'
   },
+  // Vendor and driver assignment
+  assignedVendor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  assignedDriver: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  vehicleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Vehicle'
+  },
   totalAmount: {
     type: Number,
     required: [true, 'Total amount is required'],

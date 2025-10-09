@@ -77,6 +77,32 @@ export const authorize = (...roles: string[]) => {
   };
 };
 
+// Authentication middleware (alias for protect)
+export const authenticateToken = protect;
+
+// Role-based authorization middleware
+export const requireRole = (role: string) => {
+  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Not authorized to access this route'
+      });
+      return;
+    }
+
+    if (req.user.role !== role) {
+      res.status(403).json({
+        success: false,
+        message: `Access denied. Required role: ${role}`
+      });
+      return;
+    }
+
+    next();
+  };
+};
+
 // Admin authentication middleware
 export const adminAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {

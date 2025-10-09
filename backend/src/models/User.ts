@@ -46,12 +46,71 @@ const userSchema = new Schema<IUserDocument>({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'admin', 'vendor', 'driver'],
     default: 'user'
   },
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Vendor-specific fields
+  businessName: {
+    type: String,
+    required: function() { return this.role === 'vendor'; }
+  },
+  businessType: {
+    type: String,
+    enum: ['car_rental', 'taxi_service', 'bus_service', 'truck_service', 'other'],
+    required: function() { return this.role === 'vendor'; }
+  },
+  businessLicense: {
+    type: String,
+    required: function() { return this.role === 'vendor'; }
+  },
+  businessAddress: {
+    type: String,
+    required: function() { return this.role === 'vendor'; }
+  },
+  // Driver-specific fields
+  licenseNumber: {
+    type: String,
+    required: function() { return this.role === 'driver'; }
+  },
+  licenseExpiry: {
+    type: Date,
+    required: function() { return this.role === 'driver'; }
+  },
+  vehicleType: {
+    type: String,
+    enum: ['car', 'suv', 'van', 'bus', 'truck', 'bike'],
+    required: function() { return this.role === 'driver'; }
+  },
+  experience: {
+    type: Number,
+    default: 0
+  },
+  rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  isAvailable: {
+    type: Boolean,
+    default: true
+  },
+  // Common fields for vendors and drivers
+  bankDetails: {
+    accountNumber: String,
+    ifscCode: String,
+    accountHolderName: String
+  },
+  documents: {
+    aadhar: String,
+    pan: String,
+    license: String,
+    vehicleRC: String,
+    insurance: String
   }
 }, {
   timestamps: true
