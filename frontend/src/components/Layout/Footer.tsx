@@ -14,15 +14,13 @@ const Footer: React.FC = () => {
                 <div className="footer-logo mb-4">
                   <div className="footer-logo-container mb-3">
                     <img 
-                      src="/lezit-logo.jpg" 
+                      src="/lezit-logo-removebg-preview.png" 
                       alt="LEZIT TRANSPORTS" 
                       className="footer-logo-img"
                       style={{ 
-                        height: '50px', 
+                        height: '60px', 
                         width: 'auto',
-                        backgroundColor: 'white',
-                        padding: '5px',
-                        borderRadius: '8px'
+                        filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))'
                       }}
                       onError={(e) => {
                         console.error('Logo failed to load');

@@ -41,15 +41,13 @@ const Header: React.FC = () => {
       <div className="container">
         <Link className="navbar-brand" to="/">
           <img 
-            src="/lezit-logo.jpg" 
+            src="/lezit-logo-removebg-preview.png" 
             alt="LEZIT TRANSPORTS" 
             className="navbar-logo"
             style={{ 
-              height: '40px', 
+              height: '45px', 
               width: 'auto',
-              backgroundColor: 'white',
-              padding: '3px',
-              borderRadius: '6px'
+              filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))'
             }}
             onError={(e) => {
               console.error('Logo failed to load');
@@ -75,9 +73,24 @@ const Header: React.FC = () => {
             <li className="nav-item">
               <Link className="nav-link" to="/services">Services</Link>
             </li>
-            {isAuthenticated && (
+            {isAuthenticated && user?.role === 'user' && (
               <li className="nav-item">
                 <Link className="nav-link" to="/bookings">My Bookings</Link>
+              </li>
+            )}
+            {isAuthenticated && user?.role === 'vendor' && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/vendor-dashboard">Dashboard</Link>
+              </li>
+            )}
+            {isAuthenticated && user?.role === 'driver' && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/driver-dashboard">Dashboard</Link>
+              </li>
+            )}
+            {isAuthenticated && user?.role === 'admin' && (
+              <li className="nav-item">
+                <Link className="nav-link" to="/admin">Admin</Link>
               </li>
             )}
             <li className="nav-item">
@@ -95,7 +108,10 @@ const Header: React.FC = () => {
                     onClick={toggleDropdown}
                   >
                     <i className="fas fa-user me-2"></i>
-                    {user?.name} {user?.role === 'admin' && <span className="badge bg-danger ms-1">Admin</span>}
+                    {user?.name} 
+                    {user?.role === 'admin' && <span className="badge bg-danger ms-1">Admin</span>}
+                    {user?.role === 'vendor' && <span className="badge bg-primary ms-1">Vendor</span>}
+                    {user?.role === 'driver' && <span className="badge bg-success ms-1">Driver</span>}
                   </button>
                   <ul className={`dropdown-menu ${isDropdownOpen ? 'show' : ''}`}>
                     <li>

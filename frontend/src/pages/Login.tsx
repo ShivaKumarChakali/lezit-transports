@@ -58,7 +58,7 @@ const Login: React.FC = () => {
             <div className="login-header">
               <div className="logo-section">
                 <img 
-                  src="/lezit-logo.jpg" 
+                  src="/lezit-logo-removebg-preview.png" 
                   alt="LEZIT TRANSPORTS" 
                   className="login-logo"
                 />

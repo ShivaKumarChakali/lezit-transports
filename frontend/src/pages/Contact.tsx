@@ -30,21 +30,13 @@ const Contact: React.FC = () => {
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch('http://localhost:5001/api/contact/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
+      const response = await apiService.sendContactMessage(data);
 
-      const result = await response.json();
-
-      if (result.success) {
+      if (response.success) {
         toast.success('Message sent successfully! We will get back to you soon.');
         reset();
       } else {
-        toast.error(result.message || 'Failed to send message');
+        toast.error(response.message || 'Failed to send message');
       }
     } catch (error) {
       console.error('Error sending contact form:', error);
@@ -222,18 +214,21 @@ const Contact: React.FC = () => {
         <div className="col-12">
           <div className="text-center">
             <h4 className="text-primary mb-4">Follow Us</h4>
-            <div className="d-flex justify-content-center gap-3">
-              <a href="#" className="btn btn-outline-primary btn-lg">
-                <i className="fab fa-facebook-f"></i>
+            <div className="social-icons justify-content-center">
+              <a href="https://www.linkedin.com/company/lezit-transports/posts/?feedView=all" className="social-icon linkedin" title="LinkedIn" target="_blank" rel="noopener noreferrer">
+                <i className="fab fa-linkedin"></i>
               </a>
-              <a href="#" className="btn btn-outline-primary btn-lg">
-                <i className="fab fa-twitter"></i>
+              <a href="https://www.facebook.com/profile.php?id=61564706123578&mibextid=ZbWKwL" className="social-icon facebook" title="Facebook" target="_blank" rel="noopener noreferrer">
+                <i className="fab fa-facebook"></i>
               </a>
-              <a href="#" className="btn btn-outline-primary btn-lg">
+              <a href="https://www.instagram.com/lezit_transports/profilecard/?igsh=Nnc5emFhOHphNXk=" className="social-icon instagram" title="Instagram" target="_blank" rel="noopener noreferrer">
                 <i className="fab fa-instagram"></i>
               </a>
-              <a href="#" className="btn btn-outline-primary btn-lg">
-                <i className="fab fa-linkedin-in"></i>
+              <a href="https://x.com/LezitTransports?s=08" className="social-icon twitter" title="Twitter" target="_blank" rel="noopener noreferrer">
+                <i className="fab fa-twitter"></i>
+              </a>
+              <a href="https://wa.me/message/LIOA42WBIYOBK1" className="social-icon whatsapp" title="WhatsApp" target="_blank" rel="noopener noreferrer">
+                <i className="fab fa-whatsapp"></i>
               </a>
             </div>
           </div>

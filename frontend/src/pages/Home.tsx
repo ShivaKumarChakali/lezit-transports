@@ -35,10 +35,10 @@ const Home: React.FC = () => {
   }, [testimonials.length]);
 
   const stats = [
-    { number: "500+", label: "Happy Customers", icon: "fas fa-smile" },
-    { number: "50+", label: "Cities Covered", icon: "fas fa-map-marker-alt" },
-    { number: "24/7", label: "Support Available", icon: "fas fa-headset" },
-    { number: "100%", label: "Safe Travel", icon: "fas fa-shield-alt" }
+    { number: "1000+", label: "Happy Customers", icon: "fas fa-smile", color: "var(--gold)" },
+    { number: "75+", label: "Cities Covered", icon: "fas fa-map-marker-alt", color: "var(--leaf-green)" },
+    { number: "24/7", label: "Support Available", icon: "fas fa-headset", color: "var(--avatar-blue)" },
+    { number: "100%", label: "Safe Travel", icon: "fas fa-shield-alt", color: "#e74c3c" }
   ];
 
   return (
@@ -50,15 +50,14 @@ const Home: React.FC = () => {
             <div className="col-lg-6">
               <div className="hero-logo mb-4">
                 <img 
-                  src="/lezit-logo.jpg" 
+                  src="/lezit-logo-removebg-preview.png" 
                   alt="LEZIT TRANSPORTS" 
                   className="hero-logo-img"
                   style={{ 
-                    height: '80px', 
+                    height: '120px', 
                     width: 'auto',
-                    backgroundColor: 'white',
-                    padding: '8px',
-                    borderRadius: '8px'
+                    filter: 'drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4))',
+                    transition: 'transform 0.3s ease'
                   }}
                   onError={(e) => {
                     console.error('Logo failed to load');
@@ -70,36 +69,84 @@ const Home: React.FC = () => {
                 LEZIT TRANSPORTS
               </h1> */}
               <div className="hero-subtitle mb-4">
-                <p className="lead text-gold mb-2 hero-description">
-                  a transportation hub...
+                <p className="lead text-gold mb-2 hero-description" style={{ fontSize: '1.8rem', fontWeight: '600' }}>
+                  Your Premium Transportation Hub
                 </p>
-                <p className="h4 text-white hero-description">
-                  One stop solution for all your transportation purposes
+                <p className="h3 text-white hero-description" style={{ fontWeight: '500', lineHeight: '1.3' }}>
+                  One Stop Solution for All Your Transportation Needs
                 </p>
               </div>
-              <p className="lead mb-4 hero-description">
-                Experience reliable, safe, and efficient transportation services. 
-                From personal travel to goods transportation, we've got you covered.
+              <p className="lead mb-4 hero-description" style={{ fontSize: '1.1rem', lineHeight: '1.6', opacity: '0.95' }}>
+                Experience world-class transportation services with our fleet of modern vehicles, 
+                professional drivers, and 24/7 customer support. From personal travel to goods 
+                transportation, we deliver excellence every mile.
               </p>
               <div className="d-flex flex-wrap gap-3 hero-buttons">
-                <Link to="/services" className="btn btn-light btn-lg">
+                <Link to="/services" className="btn btn-light btn-lg px-4 py-3" style={{ 
+                  fontWeight: '600', 
+                  borderRadius: '12px',
+                  boxShadow: '0 8px 25px rgba(0, 0, 0, 0.2)',
+                  transition: 'all 0.3s ease'
+                }}>
                   <i className="fas fa-cogs me-2"></i>
                   Explore Services
                 </Link>
-                <Link to="/contact" className="btn btn-outline-light btn-lg">
-                  <i className="fas fa-phone me-2"></i>
-                  Get Quote
-                </Link>
+                
+                {!isAuthenticated && (
+                  <Link to="/register" className="btn btn-gold btn-lg px-4 py-3" style={{ 
+                    fontWeight: '600', 
+                    borderRadius: '12px',
+                    backgroundColor: 'var(--gold)',
+                    borderColor: 'var(--gold)',
+                    color: 'white',
+                    boxShadow: '0 8px 25px rgba(245, 158, 11, 0.3)',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <i className="fas fa-user-plus me-2"></i>
+                    Join Now
+                  </Link>
+                )}
               </div>
+
+              {/* Partner Registration Section */}
+              {!isAuthenticated && (
+                <div className="mt-4">
+                  <p className="text-white-50 mb-3">Want to join our network?</p>
+                  <div className="d-flex flex-wrap gap-2">
+                    <Link to="/vendor-register" className="btn btn-outline-primary btn-sm" style={{ 
+                      borderRadius: '8px',
+                      borderWidth: '1px'
+                    }}>
+                      <i className="fas fa-building me-1"></i>
+                      Become a Vendor
+                    </Link>
+                    <Link to="/driver-register" className="btn btn-outline-success btn-sm" style={{ 
+                      borderRadius: '8px',
+                      borderWidth: '1px'
+                    }}>
+                      <i className="fas fa-car me-1"></i>
+                      Become a Driver
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="col-lg-6">
-              <div className="text-center hero-image">
-                <img 
-                  src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" 
-                  alt="Transportation" 
-                  className="img-fluid rounded shadow"
-                  style={{ borderRadius: '15px' }}
-                />
+              <div className="text-center hero-image position-relative">
+                <div className="hero-image-container" style={{
+                  position: 'relative',
+                  display: 'inline-block'
+                }}>
+                  <img 
+                    src="/image-removebg-preview.png" 
+                    alt="Transportation" 
+                    className="img-fluid"
+                    style={{ 
+                      maxWidth: '100%',
+                      height: 'auto'
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -111,15 +158,57 @@ const Home: React.FC = () => {
       {/* Statistics Section */}
       <section className="stats-section py-5">
         <div className="container">
-          <div className="row">
+          <div className="row justify-content-center">
             {stats.map((stat, index) => (
-              <div key={index} className="col-lg-3 col-md-5 mb-4">
-                <div className="stat-card">
-                  <div className="stat-icon">
+              <div key={index} className="col-lg-3 col-md-6 col-sm-6 mb-4">
+                <div className="stat-card position-relative" style={{
+                  background: 'rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '20px',
+                  padding: '2rem 1.5rem',
+                  textAlign: 'center',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  transition: 'all 0.3s ease',
+                  overflow: 'hidden'
+                }}>
+                  {/* Background gradient overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '4px',
+                    background: `linear-gradient(90deg, ${stat.color}, ${stat.color}aa)`
+                  }}></div>
+                  
+                  <div className="stat-icon mb-3" style={{
+                    width: '70px',
+                    height: '70px',
+                    background: `linear-gradient(135deg, ${stat.color}, ${stat.color}cc)`,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto',
+                    fontSize: '1.8rem',
+                    color: 'white',
+                    boxShadow: `0 8px 25px ${stat.color}40`,
+                    transition: 'all 0.3s ease'
+                  }}>
                     <i className={stat.icon}></i>
                   </div>
-                  <div className="stat-number">{stat.number}</div>
-                  <div className="stat-label">{stat.label}</div>
+                  <div className="stat-number" style={{
+                    fontSize: '2.5rem',
+                    fontWeight: '700',
+                    color: stat.color,
+                    marginBottom: '0.5rem',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                  }}>{stat.number}</div>
+                  <div className="stat-label" style={{
+                    fontSize: '1rem',
+                    color: 'rgba(255,255,255,0.9)',
+                    fontWeight: '500'
+                  }}>{stat.label}</div>
                 </div>
               </div>
             ))}

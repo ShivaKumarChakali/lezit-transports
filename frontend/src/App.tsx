@@ -15,6 +15,10 @@ import Contact from './pages/Contact';
 import UserProfile from './components/UserProfile';
 import AdminDashboard from './pages/AdminDashboard';
 import OAuthCallback from './pages/OAuthCallback';
+import VendorDashboard from './pages/VendorDashboard';
+import DriverDashboard from './pages/DriverDashboard';
+import VendorRegister from './pages/VendorRegister';
+import DriverRegister from './pages/DriverRegister';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -58,6 +62,56 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+// Vendor Route Component
+const VendorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== 'vendor') {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Driver Route Component
+const DriverRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== 'driver') {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -67,6 +121,8 @@ const App: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/vendor-register" element={<VendorRegister />} />
+            <Route path="/driver-register" element={<DriverRegister />} />
             <Route path="/oauth-callback" element={<OAuthCallback />} />
             <Route path="/services" element={<Services />} />
             <Route path="/contact" element={<Contact />} />
@@ -100,6 +156,22 @@ const App: React.FC = () => {
                 <AdminRoute>
                   <AdminDashboard />
                 </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/vendor-dashboard" 
+              element={
+                <VendorRoute>
+                  <VendorDashboard />
+                </VendorRoute>
+              } 
+            />
+            <Route 
+              path="/driver-dashboard" 
+              element={
+                <DriverRoute>
+                  <DriverDashboard />
+                </DriverRoute>
               } 
             />
           </Routes>

@@ -1,140 +1,250 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import { AuthResponse, ApiResponse, Service, Booking, BookingsResponse, DashboardStats, AdminUser, AdminBooking, AdminService } from '../types';
+import axios, { AxiosResponse } from 'axios';
+import { User, Service, Booking, ApiResponse, DashboardStats, AdminUser, AdminBooking, VendorDashboard, DriverDashboard, Vehicle } from '../types';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+// Create axios instance with base configuration
+const api = axios.create({
+  baseURL: 'http://localhost:5001/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-class ApiService {
-  private api: AxiosInstance;
-
-  constructor() {
-    this.api = axios.create({
-      baseURL: API_BASE_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    // Request interceptor to add auth token
-    this.api.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
-    );
-
-    // Response interceptor to handle errors
-    this.api.interceptors.response.use(
-      (response: AxiosResponse) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
-        }
-        return Promise.reject(error);
-      }
-    );
+// Add request interceptor to include auth token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  // Auth endpoints
-  async register(userData: {
+// Add response interceptor to handle common errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth API
+export const authAPI = {
+  login: async (credentials: { email: string; password: string }): Promise<ApiResponse<{ user: User; token: string }>> => {
+    const response: AxiosResponse<ApiResponse<{ user: User; token: string }>> = await api.post('/auth/login', credentials);
+    return response.data;
+  },
+
+  register: async (userData: {
     name: string;
     email: string;
     password: string;
     phone: string;
-  }): Promise<AuthResponse> {
-    const response = await this.api.post<AuthResponse>('/auth/register', userData);
+  }): Promise<ApiResponse<{ user: User; token: string }>> => {
+    const response: AxiosResponse<ApiResponse<{ user: User; token: string }>> = await api.post('/auth/register', userData);
     return response.data;
-  }
+  },
 
-  async login(credentials: { email: string; password: string }): Promise<AuthResponse> {
-    const response = await this.api.post<AuthResponse>('/auth/login', credentials);
+  getCurrentUser: async (): Promise<ApiResponse<{ user: User }>> => {
+    const response: AxiosResponse<ApiResponse<{ user: User }>> = await api.get('/auth/me');
     return response.data;
-  }
+  },
+};
 
-  async getCurrentUser(): Promise<ApiResponse<{ user: any }>> {
-    const response = await this.api.get<ApiResponse<{ user: any }>>('/auth/me');
+// Services API
+export const servicesAPI = {
+  getServices: async (): Promise<ApiResponse<Service[]>> => {
+    const response: AxiosResponse<ApiResponse<Service[]>> = await api.get('/services');
     return response.data;
-  }
+  },
 
-  // Services endpoints
-  async getServices(category?: string): Promise<ApiResponse<Service[]>> {
-    const params = category ? { category } : {};
-    const response = await this.api.get<ApiResponse<Service[]>>('/services', { params });
+  getServiceById: async (id: string): Promise<ApiResponse<Service>> => {
+    const response: AxiosResponse<ApiResponse<Service>> = await api.get(`/services/${id}`);
     return response.data;
-  }
+  },
+};
 
-  async getServiceById(id: string): Promise<ApiResponse<Service>> {
-    const response = await this.api.get<ApiResponse<Service>>(`/services/${id}`);
+// Bookings API
+export const bookingsAPI = {
+  createBooking: async (bookingData: {
+    serviceType: 'person' | 'goods';
+    serviceCategory: string;
+    pickupLocation: string;
+    dropLocation: string;
+    pickupDate: string;
+    pickupTime: string;
+    totalAmount: number;
+    numberOfPersons?: number;
+    goodsDescription?: string;
+    contactPhone: string;
+    specialInstructions?: string;
+  }): Promise<ApiResponse<Booking>> => {
+    const response: AxiosResponse<ApiResponse<Booking>> = await api.post('/bookings', bookingData);
     return response.data;
-  }
+  },
 
-  // Bookings endpoints
-  async createBooking(bookingData: any): Promise<ApiResponse<Booking>> {
-    const response = await this.api.post<ApiResponse<Booking>>('/bookings', bookingData);
+  getMyBookings: async (): Promise<ApiResponse<{ bookings: Booking[]; pagination: any }>> => {
+    const response: AxiosResponse<ApiResponse<{ bookings: Booking[]; pagination: any }>> = await api.get('/bookings/my-bookings');
     return response.data;
-  }
+  },
 
-  async getMyBookings(page = 1, limit = 10): Promise<ApiResponse<BookingsResponse>> {
-    const response = await this.api.get<ApiResponse<BookingsResponse>>('/bookings/my-bookings', {
-      params: { page, limit },
-    });
+  getBookingById: async (id: string): Promise<ApiResponse<Booking>> => {
+    const response: AxiosResponse<ApiResponse<Booking>> = await api.get(`/bookings/${id}`);
     return response.data;
-  }
+  },
 
-  async getBookingById(id: string): Promise<ApiResponse<Booking>> {
-    const response = await this.api.get<ApiResponse<Booking>>(`/bookings/${id}`);
+  cancelBooking: async (bookingId: string): Promise<ApiResponse<Booking>> => {
+    const response: AxiosResponse<ApiResponse<Booking>> = await api.put(`/bookings/${bookingId}/cancel`);
     return response.data;
-  }
+  },
 
-  async cancelBooking(id: string): Promise<ApiResponse<Booking>> {
-    const response = await this.api.put<ApiResponse<Booking>>(`/bookings/${id}/cancel`);
+  updateBookingStatus: async (bookingId: string, status: string): Promise<ApiResponse<Booking>> => {
+    const response: AxiosResponse<ApiResponse<Booking>> = await api.put(`/admin/bookings/${bookingId}/status`, { status });
     return response.data;
-  }
+  },
+};
 
-  // Admin endpoints
-  async getAdminStats(): Promise<ApiResponse<DashboardStats>> {
-    const response = await this.api.get<ApiResponse<DashboardStats>>('/admin/stats');
+// Admin API
+export const adminAPI = {
+  getAdminStats: async (): Promise<ApiResponse<DashboardStats>> => {
+    const response: AxiosResponse<ApiResponse<DashboardStats>> = await api.get('/admin/stats');
     return response.data;
-  }
+  },
 
-  async getAdminUsers(): Promise<ApiResponse<AdminUser[]>> {
-    const response = await this.api.get<ApiResponse<AdminUser[]>>('/admin/users');
+  getAdminUsers: async (): Promise<ApiResponse<AdminUser[]>> => {
+    const response: AxiosResponse<ApiResponse<AdminUser[]>> = await api.get('/admin/users');
     return response.data;
-  }
+  },
 
-  async getAdminBookings(): Promise<ApiResponse<AdminBooking[]>> {
-    const response = await this.api.get<ApiResponse<AdminBooking[]>>('/admin/bookings');
+  getAdminBookings: async (): Promise<ApiResponse<AdminBooking[]>> => {
+    const response: AxiosResponse<ApiResponse<AdminBooking[]>> = await api.get('/admin/bookings');
     return response.data;
-  }
+  },
 
-  async updateBookingStatus(bookingId: string, status: string): Promise<ApiResponse<AdminBooking>> {
-    const response = await this.api.put<ApiResponse<AdminBooking>>(`/admin/bookings/${bookingId}/status`, { status });
+  updateUserStatus: async (userId: string, isActive: boolean): Promise<ApiResponse<AdminUser>> => {
+    const response: AxiosResponse<ApiResponse<AdminUser>> = await api.put(`/admin/users/${userId}/status`, { isActive });
     return response.data;
-  }
+  },
 
-  async updateUserStatus(userId: string, isActive: boolean): Promise<ApiResponse<AdminUser>> {
-    const response = await this.api.put<ApiResponse<AdminUser>>(`/admin/users/${userId}/status`, { isActive });
+  updateServiceStatus: async (serviceId: string, isActive: boolean): Promise<ApiResponse<Service>> => {
+    const response: AxiosResponse<ApiResponse<Service>> = await api.put(`/admin/services/${serviceId}/status`, { isActive });
     return response.data;
-  }
+  },
+};
 
-  async updateServiceStatus(serviceId: string, isActive: boolean): Promise<ApiResponse<AdminService>> {
-    const response = await this.api.put<ApiResponse<AdminService>>(`/admin/services/${serviceId}/status`, { isActive });
+// Contact API
+export const contactAPI = {
+  sendContactMessage: async (messageData: {
+    name: string;
+    email: string;
+    phone: string;
+    subject: string;
+    message: string;
+  }): Promise<ApiResponse<{ message: string }>> => {
+    const response: AxiosResponse<ApiResponse<{ message: string }>> = await api.post('/contact/contact', messageData);
     return response.data;
-  }
+  },
+};
 
-  // Health check
-  async healthCheck(): Promise<ApiResponse> {
-    const response = await this.api.get<ApiResponse>('/health');
-    return response.data;
-  }
-}
+// Main API service object that combines all APIs
+const apiService = {
+  // Auth methods
+  login: authAPI.login,
+  register: authAPI.register,
+  getCurrentUser: authAPI.getCurrentUser,
 
-export const apiService = new ApiService();
-export default apiService; 
+  // Services methods
+  getServices: servicesAPI.getServices,
+  getServiceById: servicesAPI.getServiceById,
+
+  // Bookings methods
+  createBooking: bookingsAPI.createBooking,
+  getMyBookings: bookingsAPI.getMyBookings,
+  getBookingById: bookingsAPI.getBookingById,
+  cancelBooking: bookingsAPI.cancelBooking,
+  updateBookingStatus: bookingsAPI.updateBookingStatus,
+
+  // Admin methods
+  getAdminStats: adminAPI.getAdminStats,
+  getAdminUsers: adminAPI.getAdminUsers,
+  getAdminBookings: adminAPI.getAdminBookings,
+  updateUserStatus: adminAPI.updateUserStatus,
+  updateServiceStatus: adminAPI.updateServiceStatus,
+
+  // Contact methods
+  sendContactMessage: contactAPI.sendContactMessage,
+
+  // Vendor methods
+  vendor: {
+    getDashboard: async (): Promise<ApiResponse<VendorDashboard>> => {
+      const response: AxiosResponse<ApiResponse<VendorDashboard>> = await api.get('/vendor/dashboard');
+      return response.data;
+    },
+    getVehicles: async (page = 1, limit = 10): Promise<ApiResponse<{ vehicles: Vehicle[]; pagination: any }>> => {
+      const response: AxiosResponse<ApiResponse<{ vehicles: Vehicle[]; pagination: any }>> = await api.get(`/vendor/vehicles?page=${page}&limit=${limit}`);
+      return response.data;
+    },
+    addVehicle: async (vehicleData: any): Promise<ApiResponse<Vehicle>> => {
+      const response: AxiosResponse<ApiResponse<Vehicle>> = await api.post('/vendor/vehicles', vehicleData);
+      return response.data;
+    },
+    updateVehicle: async (vehicleId: string, vehicleData: any): Promise<ApiResponse<Vehicle>> => {
+      const response: AxiosResponse<ApiResponse<Vehicle>> = await api.put(`/vendor/vehicles/${vehicleId}`, vehicleData);
+      return response.data;
+    },
+    deleteVehicle: async (vehicleId: string): Promise<ApiResponse<void>> => {
+      const response: AxiosResponse<ApiResponse<void>> = await api.delete(`/vendor/vehicles/${vehicleId}`);
+      return response.data;
+    },
+    getBookings: async (page = 1, limit = 10, status?: string): Promise<ApiResponse<{ bookings: Booking[]; pagination: any }>> => {
+      const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+      if (status) params.append('status', status);
+      const response: AxiosResponse<ApiResponse<{ bookings: Booking[]; pagination: any }>> = await api.get(`/vendor/bookings?${params}`);
+      return response.data;
+    },
+    updateBookingStatus: async (bookingId: string, status: string): Promise<ApiResponse<Booking>> => {
+      const response: AxiosResponse<ApiResponse<Booking>> = await api.put(`/vendor/bookings/${bookingId}/status`, { status });
+      return response.data;
+    },
+  },
+
+  // Driver methods
+  driver: {
+    getDashboard: async (): Promise<ApiResponse<DriverDashboard>> => {
+      const response: AxiosResponse<ApiResponse<DriverDashboard>> = await api.get('/driver/dashboard');
+      return response.data;
+    },
+    getBookings: async (page = 1, limit = 10, status?: string): Promise<ApiResponse<{ bookings: Booking[]; pagination: any }>> => {
+      const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
+      if (status) params.append('status', status);
+      const response: AxiosResponse<ApiResponse<{ bookings: Booking[]; pagination: any }>> = await api.get(`/driver/bookings?${params}`);
+      return response.data;
+    },
+    updateAvailability: async (isAvailable: boolean): Promise<ApiResponse<User>> => {
+      const response: AxiosResponse<ApiResponse<User>> = await api.put('/driver/availability', { isAvailable });
+      return response.data;
+    },
+    updateBookingStatus: async (bookingId: string, status: string): Promise<ApiResponse<Booking>> => {
+      const response: AxiosResponse<ApiResponse<Booking>> = await api.put(`/driver/bookings/${bookingId}/status`, { status });
+      return response.data;
+    },
+    updateProfile: async (profileData: any): Promise<ApiResponse<User>> => {
+      const response: AxiosResponse<ApiResponse<User>> = await api.put('/driver/profile', profileData);
+      return response.data;
+    },
+    getAvailableDrivers: async (vehicleType?: string, location?: string): Promise<ApiResponse<User[]>> => {
+      const params = new URLSearchParams();
+      if (vehicleType) params.append('vehicleType', vehicleType);
+      if (location) params.append('location', location);
+      const response: AxiosResponse<ApiResponse<User[]>> = await api.get(`/driver/available?${params}`);
+      return response.data;
+    },
+  },
+};
+
+export { apiService };
+export default apiService;

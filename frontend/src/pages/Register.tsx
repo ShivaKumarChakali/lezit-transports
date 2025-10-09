@@ -36,7 +36,7 @@ const Register: React.FC = () => {
         name: data.name,
         email: data.email,
         phone: data.phone,
-        password: data.password,
+        password: data.password
       });
       toast.success('Registration successful! Please log in.');
       navigate('/login');
@@ -67,7 +67,7 @@ const Register: React.FC = () => {
             <div className="register-header">
               <div className="logo-section">
                 <img 
-                  src="/lezit-logo.jpg" 
+                  src="/lezit-logo-removebg-preview.png" 
                   alt="LEZIT TRANSPORTS" 
                   className="register-logo"
                 />
@@ -233,6 +233,30 @@ const Register: React.FC = () => {
                     </>
                   )}
                 </button>
+
+                <div className="role-selection-section">
+                  <div className="role-divider">
+                    <span>Want to join our network?</span>
+                  </div>
+                  
+                  <div className="role-buttons">
+                    <Link to="/vendor-register" className="role-btn vendor-btn">
+                      <i className="fas fa-building"></i>
+                      <div className="role-btn-content">
+                        <h4>Become a Vendor</h4>
+                        <p>Provide vehicles and services</p>
+                      </div>
+                    </Link>
+                    
+                    <Link to="/driver-register" className="role-btn driver-btn">
+                      <i className="fas fa-car"></i>
+                      <div className="role-btn-content">
+                        <h4>Become a Driver</h4>
+                        <p>Drive for our platform</p>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
 
                 <div className="register-divider">
                   <span>or</span>
