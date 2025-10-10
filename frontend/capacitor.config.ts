@@ -5,8 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Lezit Transports',
   webDir: 'build',
   server: {
-    androidScheme: 'https',
-    hostname: 'lezit-transports-frontend.onrender.com'
+    androidScheme: 'https'
   },
   android: {
     buildOptions: {

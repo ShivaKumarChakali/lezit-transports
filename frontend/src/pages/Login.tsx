@@ -31,8 +31,9 @@ const Login: React.FC = () => {
       await login(data.email, data.password);
       toast.success('Login successful!');
       navigate('/');
-    } catch (error: any) {
-      toast.error(error.message || 'Login failed');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      toast.error(errorMessage);
     }
   };
 
