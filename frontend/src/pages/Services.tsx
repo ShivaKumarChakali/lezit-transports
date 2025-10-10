@@ -17,13 +17,25 @@ const Services: React.FC = () => {
 
   const fetchServices = async () => {
     try {
+      console.log('🔍 Fetching services...');
       const response = await apiService.getServices();
+      console.log('📡 Services response:', response);
+      
       if (response.success) {
+        console.log('✅ Services loaded successfully:', response.data);
         setServices(response.data || []);
+      } else {
+        console.error('❌ Services response failed:', response.message);
+        toast.error(response.message || 'Failed to load services');
       }
     } catch (error) {
-      console.error('Error fetching services:', error);
-      toast.error('Failed to load services');
+      console.error('💥 Error fetching services:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data
+      });
+      toast.error(`Failed to load services: ${error.message}`);
     } finally {
       setLoading(false);
     }

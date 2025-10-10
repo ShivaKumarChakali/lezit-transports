@@ -3,7 +3,7 @@ import { User, Service, Booking, ApiResponse, DashboardStats, AdminUser, AdminBo
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'http://localhost:5001/api',
+  baseURL: 'https://lezit-transports-backend.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -58,7 +58,9 @@ export const authAPI = {
 // Services API
 export const servicesAPI = {
   getServices: async (): Promise<ApiResponse<Service[]>> => {
+    console.log('🌐 Making API request to:', api.defaults.baseURL + '/services');
     const response: AxiosResponse<ApiResponse<Service[]>> = await api.get('/services');
+    console.log('📨 API response received:', response.data);
     return response.data;
   },
 

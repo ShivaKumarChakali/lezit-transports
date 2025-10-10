@@ -38,7 +38,9 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
   // Allow all Render domains
   /^https:\/\/.*\.onrender\.com$/,
-  // Allow Capacitor mobile app origins
+  // Allow deployed frontend
+  'https://lezit-transports-frontend.onrender.com',
+  // Allow Capacitor mobile app origins (for development)
   'capacitor://localhost',
   'ionic://localhost',
   'http://localhost',

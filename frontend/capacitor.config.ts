@@ -1,0 +1,23 @@
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.lezit.transports',
+  appName: 'Lezit Transports',
+  webDir: 'build',
+  server: {
+    androidScheme: 'https',
+    hostname: 'lezit-transports-frontend.onrender.com'
+  },
+  android: {
+    buildOptions: {
+      keystorePath: undefined,
+      keystorePassword: undefined,
+      keystoreAlias: undefined,
+      keystoreAliasPassword: undefined,
+      releaseType: 'APK',
+      signingType: 'apksigner'
+    }
+  }
+};
+
+export default config;

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Lezit Transports</string>
+    <string name="title_activity_main">Lezit Transports</string>
+    <string name="package_name">com.lezit.transports</string>
+    <string name="custom_url_scheme">com.lezit.transports</string>
+</resources>
