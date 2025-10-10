@@ -37,7 +37,13 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   process.env.FRONTEND_URL,
   // Allow all Render domains
-  /^https:\/\/.*\.onrender\.com$/
+  /^https:\/\/.*\.onrender\.com$/,
+  // Allow Capacitor mobile app origins
+  'capacitor://localhost',
+  'ionic://localhost',
+  'http://localhost',
+  'http://localhost:8080',
+  'http://localhost:8100'
 ].filter(Boolean);
 
 app.use(cors({
