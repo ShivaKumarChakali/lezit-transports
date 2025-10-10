@@ -1,5 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
 import { User, Service, Booking, ApiResponse, DashboardStats, AdminUser, AdminBooking, VendorDashboard, DriverDashboard, Vehicle } from '../types';
+import { navigationService } from './navigation';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -26,7 +27,8 @@ api.interceptors.response.use(
       // Token expired or invalid
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Use navigation service for proper SPA navigation
+      navigationService.redirectToLogin();
     }
     return Promise.reject(error);
   }

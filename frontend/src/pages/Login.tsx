@@ -159,7 +159,7 @@ const Login: React.FC = () => {
                   <button 
                     type="button" 
                     className="social-btn google-btn"
-                    onClick={() => window.location.href = `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/auth/google`}
+                    onClick={() => window.location.href = `https://lezit-transports-backend.onrender.com/api/auth/google`}
                   >
                     <i className="fab fa-google"></i>
                     Continue with Google
@@ -167,7 +167,7 @@ const Login: React.FC = () => {
                   <button 
                     type="button" 
                     className="social-btn facebook-btn"
-                    onClick={() => window.location.href = `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/auth/facebook`}
+                    onClick={() => window.location.href = `https://lezit-transports-backend.onrender.com/api/auth/facebook`}
                   >
                     <i className="fab fa-facebook-f"></i>
                     Continue with Facebook

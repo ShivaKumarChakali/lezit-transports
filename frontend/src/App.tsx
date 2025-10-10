@@ -1,7 +1,8 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { navigationService } from './services/navigation';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout/Layout';
@@ -112,10 +113,22 @@ const DriverRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+// Navigation initializer component
+const NavigationInitializer: React.FC = () => {
+  const navigate = useNavigate();
+  
+  React.useEffect(() => {
+    navigationService.setNavigate(navigate);
+  }, [navigate]);
+  
+  return null;
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
+        <NavigationInitializer />
         <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
