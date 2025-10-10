@@ -31,11 +31,12 @@ const Services: React.FC = () => {
     } catch (error) {
       console.error('💥 Error fetching services:', error);
       console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.data
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        response: (error as any)?.response?.data
       });
-      toast.error(`Failed to load services: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to load services: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
