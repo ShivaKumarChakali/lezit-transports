@@ -5,6 +5,16 @@ import User, { IUserDocument } from '../models/User';
 import jwt from 'jsonwebtoken';
 import { Profile } from 'passport';
 
+// Helper function to build callback URL - use full URL for OAuth
+const getCallbackURL = (path: string) => {
+  if (process.env.BACKEND_URL) {
+    return `${process.env.BACKEND_URL}${path}`;
+  }
+  // Fallback to localhost for development
+  const port = process.env.PORT || '5001';
+  return `http://localhost:${port}${path}`;
+};
+
 // Google OAuth Strategy
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(
@@ -12,7 +22,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: '/api/auth/google/callback',
+        callbackURL: getCallbackURL('/api/auth/google/callback'),
         scope: ['profile', 'email']
       },
     async (accessToken: string, refreshToken: string, profile: Profile, done: any) => {
@@ -57,7 +67,7 @@ if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
       {
         clientID: process.env.FACEBOOK_APP_ID,
         clientSecret: process.env.FACEBOOK_APP_SECRET,
-        callbackURL: '/api/auth/facebook/callback',
+        callbackURL: getCallbackURL('/api/auth/facebook/callback'),
         profileFields: ['id', 'displayName', 'emails']
       },
     async (accessToken: string, refreshToken: string, profile: Profile, done: any) => {

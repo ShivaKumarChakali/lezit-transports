@@ -8,9 +8,10 @@
 3. Enable Google+ API
 4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
 5. Choose "Web application"
-6. Add authorized redirect URIs:
-   - `http://localhost:5001/api/auth/google/callback` (development)
-   - `https://your-domain.com/api/auth/google/callback` (production)
+6. Add authorized redirect URIs (IMPORTANT: Must match exactly):
+   - **Development**: `http://localhost:5001/api/auth/google/callback`
+   - **Production**: `https://lezit-transports-backend.onrender.com/api/auth/google/callback`
+   - **Note**: The URL must be the FULL absolute URL including protocol (http/https) and domain
 
 ### 2. Get Credentials
 - Copy the **Client ID** and **Client Secret**
@@ -27,9 +28,10 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 2. Create a new app or select existing one
 3. Add "Facebook Login" product
 4. Configure OAuth settings:
-   - Valid OAuth Redirect URIs:
-     - `http://localhost:5001/api/auth/facebook/callback` (development)
-     - `https://your-domain.com/api/auth/facebook/callback` (production)
+   - Valid OAuth Redirect URIs (IMPORTANT: Must match exactly):
+     - **Development**: `http://localhost:5001/api/auth/facebook/callback`
+     - **Production**: `https://lezit-transports-backend.onrender.com/api/auth/facebook/callback`
+     - **Note**: The URL must be the FULL absolute URL including protocol (http/https) and domain
 
 ### 2. Get Credentials
 - Copy the **App ID** and **App Secret**
@@ -53,8 +55,13 @@ FACEBOOK_APP_SECRET=your-facebook-app-secret
 # Session Configuration
 SESSION_SECRET=your-session-secret-key-here
 
-# Frontend URL (for OAuth redirects)
+# Frontend URL (for OAuth redirects after authentication)
 FRONTEND_URL=http://localhost:3000
+
+# Backend URL (for OAuth callbacks - MUST match Google/Facebook redirect URIs exactly)
+# Development: http://localhost:5001
+# Production: https://lezit-transports-backend.onrender.com
+BACKEND_URL=http://localhost:5001
 ```
 
 ## 🚀 **How It Works**
