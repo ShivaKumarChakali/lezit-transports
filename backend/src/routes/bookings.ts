@@ -4,7 +4,10 @@ import {
   createBooking,
   getMyBookings,
   getBookingById,
+  getBookingByOrderId,
   updateBookingStatus,
+  updateBookingDetails,
+  getBookingTimeline,
   cancelBooking
 } from '../controllers/bookingController';
 import { protect, authorize } from '../middleware/auth';
@@ -41,13 +44,22 @@ const createBookingValidation = [
   body('goodsDescription')
     .optional()
     .isLength({ max: 500 })
-    .withMessage('Goods description cannot exceed 500 characters')
+    .withMessage('Goods description cannot exceed 500 characters'),
+  body('sourcePlatform')
+    .optional()
+    .isIn(['phone', 'email', 'whatsapp', 'website', 'facebook', 'instagram', 'linkedin', 'mobile_app', 'direct_office'])
+    .withMessage('Invalid source platform')
 ];
 
 const updateStatusValidation = [
   body('status')
+    .optional()
     .isIn(['pending', 'confirmed', 'in-progress', 'completed', 'cancelled'])
-    .withMessage('Invalid status value')
+    .withMessage('Invalid status value'),
+  body('orderStatus')
+    .optional()
+    .isIn(['primary', 'updated', 'quotation_shared', 'confirmed', 'in_progress', 'pending_payment', 'completed', 'pending_feedback', 'cancelled'])
+    .withMessage('Invalid order status value')
 ];
 
 // Apply auth middleware to all routes
@@ -55,8 +67,11 @@ router.use(protect);
 
 // Routes
 router.post('/', createBookingValidation, createBooking);
+router.get('/order/:orderId', getBookingByOrderId);
+router.get('/:id/timeline', getBookingTimeline);
 router.get('/my-bookings', getMyBookings);
 router.get('/:id', getBookingById);
+router.put('/:id/details', updateBookingDetails);
 router.put('/:id/cancel', cancelBooking);
 
 // Admin only routes

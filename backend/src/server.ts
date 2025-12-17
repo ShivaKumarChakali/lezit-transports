@@ -15,6 +15,10 @@ import serviceRoutes from './routes/services';
 import contactRoutes from './routes/contact';
 import adminRoutes from './routes/admin';
 import oauthRoutes from './routes/oauth';
+import quotationRoutes from './routes/quotations';
+import salesOrderRoutes from './routes/salesOrders';
+import purchaseOrderRoutes from './routes/purchaseOrders';
+import financialTransactionRoutes from './routes/financialTransactions';
 
 // Import passport configuration
 import passport from './config/passport';
@@ -107,6 +111,10 @@ app.get('/health', (req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', oauthRoutes); // OAuth routes
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/quotations', quotationRoutes);
+app.use('/api/sales-orders', salesOrderRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/financial-transactions', financialTransactionRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);

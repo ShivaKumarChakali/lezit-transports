@@ -4,11 +4,19 @@ import { IBooking } from '../types';
 export interface IBookingDocument extends Omit<IBooking, '_id'>, Document {}
 
 const bookingSchema = new Schema<IBookingDocument>({
+  orderId: {
+    type: String
+  },
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
   } as any,
+  sourcePlatform: {
+    type: String,
+    enum: ['phone', 'email', 'whatsapp', 'website', 'facebook', 'instagram', 'linkedin', 'mobile_app', 'direct_office'],
+    default: 'website'
+  },
   serviceType: {
     type: String,
     enum: ['person', 'goods'],
@@ -59,6 +67,11 @@ const bookingSchema = new Schema<IBookingDocument>({
     type: Boolean,
     default: true
   },
+  orderStatus: {
+    type: String,
+    enum: ['primary', 'updated', 'quotation_shared', 'confirmed', 'in_progress', 'pending_payment', 'completed', 'pending_feedback', 'cancelled'],
+    default: 'primary'
+  },
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled'],
@@ -93,6 +106,27 @@ const bookingSchema = new Schema<IBookingDocument>({
   specialInstructions: {
     type: String,
     maxlength: [500, 'Special instructions cannot exceed 500 characters']
+  },
+  // Related document references
+  quotationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Quotation'
+  },
+  salesOrderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SalesOrder'
+  },
+  purchaseOrderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PurchaseOrder'
+  },
+  invoiceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Invoice'
+  },
+  billId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Bill'
   }
 }, {
   timestamps: true
@@ -101,6 +135,9 @@ const bookingSchema = new Schema<IBookingDocument>({
 // Index for better query performance
 bookingSchema.index({ userId: 1, createdAt: -1 });
 bookingSchema.index({ status: 1 });
+bookingSchema.index({ orderStatus: 1 });
+bookingSchema.index({ orderId: 1 }, { unique: true, sparse: true });
 bookingSchema.index({ pickupDate: 1 });
+bookingSchema.index({ sourcePlatform: 1 });
 
 export default mongoose.model<IBookingDocument>('Booking', bookingSchema); 

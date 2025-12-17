@@ -27,18 +27,36 @@ const supportTransporter = nodemailer.createTransport(supportEmailConfig);
 
 // Verify email configurations
 const verifyEmailConfigs = async () => {
-  try {
-    await bookingTransporter.verify();
-    console.log('✅ Booking email configuration verified');
-  } catch (error) {
-    console.error('❌ Booking email configuration failed:', error);
+  // Only verify if credentials are provided
+  const hasBookingCredentials = process.env.SMTP_USER_BOOKING && process.env.SMTP_PASS_BOOKING;
+  const hasSupportCredentials = process.env.SMTP_USER_SUPPORT && process.env.SMTP_PASS_SUPPORT;
+
+  if (hasBookingCredentials) {
+    try {
+      await bookingTransporter.verify();
+      console.log('✅ Booking email configuration verified');
+    } catch (error: any) {
+      console.warn('⚠️  Booking email configuration failed:', error.code === 'EAUTH' ? 'Authentication failed - check SMTP credentials' : error.message);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('   Email functionality will be disabled until credentials are configured correctly.');
+      }
+    }
+  } else {
+    console.warn('⚠️  Booking email credentials not configured. Set SMTP_USER_BOOKING and SMTP_PASS_BOOKING in .env');
   }
 
-  try {
-    await supportTransporter.verify();
-    console.log('✅ Support email configuration verified');
-  } catch (error) {
-    console.error('❌ Support email configuration failed:', error);
+  if (hasSupportCredentials) {
+    try {
+      await supportTransporter.verify();
+      console.log('✅ Support email configuration verified');
+    } catch (error: any) {
+      console.warn('⚠️  Support email configuration failed:', error.code === 'EAUTH' ? 'Authentication failed - check SMTP credentials' : error.message);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('   Email functionality will be disabled until credentials are configured correctly.');
+      }
+    }
+  } else {
+    console.warn('⚠️  Support email credentials not configured. Set SMTP_USER_SUPPORT and SMTP_PASS_SUPPORT in .env');
   }
 };
 
@@ -206,6 +224,105 @@ const emailTemplates = {
     `
   }),
 
+  quotation: (quotationData: any) => ({
+    subject: `Quotation for Order ${quotationData.orderId || quotationData.bookingId}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
+          <h1>LEZIT TRANSPORTS</h1>
+          <h2>Quotation - ${quotationData.quotationNumber}</h2>
+        </div>
+        
+        <div style="padding: 20px; background: #f8f9fa;">
+          <h3>Dear ${quotationData.customerName},</h3>
+          <p>Thank you for your interest in our services. Please find below the quotation for your booking request.</p>
+          
+          <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4>Quotation Details:</h4>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Quotation Number:</strong></td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">${quotationData.quotationNumber}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Order ID:</strong></td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">${quotationData.orderId || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Valid Until:</strong></td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">${new Date(quotationData.validUntil).toLocaleDateString()}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4>Items:</h4>
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f5f5f5;">
+                  <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Description</th>
+                  ${quotationData.items.some((item: any) => item.quantity) ? '<th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Quantity</th>' : ''}
+                  <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${quotationData.items.map((item: any) => `
+                  <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.description}</td>
+                    ${item.quantity ? `<td style="padding: 10px; text-align: right; border-bottom: 1px solid #eee;">${item.quantity}</td>` : ''}
+                    <td style="padding: 10px; text-align: right; border-bottom: 1px solid #eee;">₹${item.total.toLocaleString()}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="${quotationData.items.some((item: any) => item.quantity) ? '2' : '1'}" style="padding: 10px; text-align: right; border-top: 2px solid #ddd;"><strong>Subtotal:</strong></td>
+                  <td style="padding: 10px; text-align: right; border-top: 2px solid #ddd;"><strong>₹${quotationData.subtotal.toLocaleString()}</strong></td>
+                </tr>
+                ${quotationData.taxes > 0 ? `
+                  <tr>
+                    <td colspan="${quotationData.items.some((item: any) => item.quantity) ? '2' : '1'}" style="padding: 10px; text-align: right;"><strong>Taxes:</strong></td>
+                    <td style="padding: 10px; text-align: right;"><strong>₹${quotationData.taxes.toLocaleString()}</strong></td>
+                  </tr>
+                ` : ''}
+                ${quotationData.discount > 0 ? `
+                  <tr>
+                    <td colspan="${quotationData.items.some((item: any) => item.quantity) ? '2' : '1'}" style="padding: 10px; text-align: right;"><strong>Discount:</strong></td>
+                    <td style="padding: 10px; text-align: right;"><strong>-₹${quotationData.discount.toLocaleString()}</strong></td>
+                  </tr>
+                ` : ''}
+                <tr style="background: #e3f2fd;">
+                  <td colspan="${quotationData.items.some((item: any) => item.quantity) ? '2' : '1'}" style="padding: 15px; text-align: right; font-size: 18px;"><strong>Total Amount:</strong></td>
+                  <td style="padding: 15px; text-align: right; font-size: 18px;"><strong>₹${quotationData.totalAmount.toLocaleString()}</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          ${quotationData.termsAndConditions ? `
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <h4>Terms & Conditions:</h4>
+              <p style="white-space: pre-wrap;">${quotationData.termsAndConditions}</p>
+            </div>
+          ` : ''}
+          
+          <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <p><strong>Please review this quotation and confirm if you wish to proceed.</strong></p>
+            <p>This quotation is valid until ${new Date(quotationData.validUntil).toLocaleDateString()}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 20px 0;">
+            <p>For any questions, contact us at: <a href="mailto:support@lezittransports.com">support@lezittransports.com</a></p>
+          </div>
+        </div>
+        
+        <div style="background: #333; color: white; padding: 15px; text-align: center; font-size: 12px;">
+          <p>© 2024 LEZIT TRANSPORTS. All rights reserved.</p>
+        </div>
+      </div>
+    `
+  }),
+
   supportRequest: (supportData: any) => ({
     subject: `Support Request - ${supportData.category}`,
     html: `
@@ -258,6 +375,12 @@ const emailTemplates = {
 // Email service functions
 export const sendBookingConfirmation = async (bookingData: any, userEmail: string) => {
   try {
+    // Check if email is configured
+    if (!process.env.SMTP_USER_BOOKING || !process.env.SMTP_PASS_BOOKING) {
+      console.warn('⚠️  Email not configured - skipping booking confirmation email');
+      return { success: false, error: 'Email service not configured' };
+    }
+
     const template = emailTemplates.bookingConfirmation(bookingData);
     
     const mailOptions = {
@@ -271,13 +394,24 @@ export const sendBookingConfirmation = async (bookingData: any, userEmail: strin
     console.log('✅ Booking confirmation email sent:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
-    console.error('❌ Failed to send booking confirmation email:', error);
+    // Log error but don't throw - email failures shouldn't break the flow
+    if (error.code === 'EAUTH') {
+      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
+    } else {
+      console.error('❌ Failed to send booking confirmation email:', error.message);
+    }
     return { success: false, error: error.message };
   }
 };
 
 export const sendBookingCancellation = async (bookingData: any, userEmail: string) => {
   try {
+    // Check if email is configured
+    if (!process.env.SMTP_USER_BOOKING || !process.env.SMTP_PASS_BOOKING) {
+      console.warn('⚠️  Email not configured - skipping booking cancellation email');
+      return { success: false, error: 'Email service not configured' };
+    }
+
     const template = emailTemplates.bookingCancellation(bookingData);
     
     const mailOptions = {
@@ -291,13 +425,23 @@ export const sendBookingCancellation = async (bookingData: any, userEmail: strin
     console.log('✅ Booking cancellation email sent:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
-    console.error('❌ Failed to send booking cancellation email:', error);
+    if (error.code === 'EAUTH') {
+      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
+    } else {
+      console.error('❌ Failed to send booking cancellation email:', error.message);
+    }
     return { success: false, error: error.message };
   }
 };
 
 export const sendContactForm = async (contactData: any) => {
   try {
+    // Check if email is configured
+    if (!process.env.SMTP_USER_SUPPORT || !process.env.SMTP_PASS_SUPPORT) {
+      console.warn('⚠️  Email not configured - skipping contact form email');
+      return { success: false, error: 'Email service not configured' };
+    }
+
     const template = emailTemplates.contactForm(contactData);
     
     const mailOptions = {
@@ -311,13 +455,53 @@ export const sendContactForm = async (contactData: any) => {
     console.log('✅ Contact form email sent:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
-    console.error('❌ Failed to send contact form email:', error);
+    if (error.code === 'EAUTH') {
+      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
+    } else {
+      console.error('❌ Failed to send contact form email:', error.message);
+    }
+    return { success: false, error: error.message };
+  }
+};
+
+export const sendQuotationEmail = async (quotationData: any, userEmail: string) => {
+  try {
+    // Check if email is configured
+    if (!process.env.SMTP_USER_BOOKING || !process.env.SMTP_PASS_BOOKING) {
+      console.warn('⚠️  Email not configured - skipping quotation email');
+      return { success: false, error: 'Email service not configured' };
+    }
+
+    const template = emailTemplates.quotation(quotationData);
+    
+    const mailOptions = {
+      from: process.env.SMTP_USER_BOOKING || 'bookings@lezittransports.com',
+      to: userEmail,
+      subject: template.subject,
+      html: template.html
+    };
+
+    const result = await bookingTransporter.sendMail(mailOptions);
+    console.log('✅ Quotation email sent:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error: any) {
+    if (error.code === 'EAUTH') {
+      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
+    } else {
+      console.error('❌ Failed to send quotation email:', error.message);
+    }
     return { success: false, error: error.message };
   }
 };
 
 export const sendSupportRequest = async (supportData: any) => {
   try {
+    // Check if email is configured
+    if (!process.env.SMTP_USER_SUPPORT || !process.env.SMTP_PASS_SUPPORT) {
+      console.warn('⚠️  Email not configured - skipping support request email');
+      return { success: false, error: 'Email service not configured' };
+    }
+
     const template = emailTemplates.supportRequest(supportData);
     
     const mailOptions = {
@@ -331,7 +515,11 @@ export const sendSupportRequest = async (supportData: any) => {
     console.log('✅ Support request email sent:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
-    console.error('❌ Failed to send support request email:', error);
+    if (error.code === 'EAUTH') {
+      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
+    } else {
+      console.error('❌ Failed to send support request email:', error.message);
+    }
     return { success: false, error: error.message };
   }
 };
@@ -342,6 +530,7 @@ verifyEmailConfigs();
 export default {
   sendBookingConfirmation,
   sendBookingCancellation,
+  sendQuotationEmail,
   sendContactForm,
   sendSupportRequest
 }; 
