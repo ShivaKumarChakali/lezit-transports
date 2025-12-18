@@ -30,6 +30,28 @@ const Login: React.FC = () => {
     try {
       await login(data.email, data.password);
       toast.success('Login successful!');
+      
+      // Redirect based on user role
+      // Get user from localStorage after login completes
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.role === 'admin') {
+            navigate('/admin');
+            return;
+          } else if (user.role === 'vendor') {
+            navigate('/vendor-dashboard');
+            return;
+          } else if (user.role === 'driver') {
+            navigate('/driver-dashboard');
+            return;
+          }
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+        }
+      }
+      // Default redirect to home
       navigate('/');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';

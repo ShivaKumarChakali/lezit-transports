@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { navigationService } from './services/navigation';
@@ -185,6 +185,20 @@ const App: React.FC = () => {
                 <DriverRoute>
                   <DriverDashboard />
                 </DriverRoute>
+              } 
+            />
+            {/* Catch-all route for 404 */}
+            <Route 
+              path="*" 
+              element={
+                <div className="container py-5 text-center">
+                  <h1 className="display-1">404</h1>
+                  <h2>Page Not Found</h2>
+                  <p className="lead text-muted">The page you're looking for doesn't exist.</p>
+                  <Link to="/" className="btn btn-primary mt-3">
+                    Go to Home
+                  </Link>
+                </div>
               } 
             />
           </Routes>
