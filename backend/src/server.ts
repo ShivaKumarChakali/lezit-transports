@@ -19,6 +19,10 @@ import quotationRoutes from './routes/quotations';
 import salesOrderRoutes from './routes/salesOrders';
 import purchaseOrderRoutes from './routes/purchaseOrders';
 import financialTransactionRoutes from './routes/financialTransactions';
+import invoiceRoutes from './routes/invoices';
+import billRoutes from './routes/bills';
+import documentRoutes from './routes/documents';
+import feedbackRoutes from './routes/feedback';
 
 // Import passport configuration
 import passport from './config/passport';
@@ -97,6 +101,9 @@ app.use(passport.initialize());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Serve uploaded documents
+app.use('/uploads', express.static('uploads'));
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
@@ -115,6 +122,10 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/sales-orders', salesOrderRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/financial-transactions', financialTransactionRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/bills', billRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/feedback', feedbackRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);

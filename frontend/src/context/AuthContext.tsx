@@ -108,8 +108,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginWithToken = async (token: string) => {
     try {
-      setToken(token);
+      // First, store the token in localStorage (this is read by the axios interceptor)
       localStorage.setItem('token', token);
+      setToken(token);
+      
+      // Small delay to ensure token is set before making the request
+      // The axios interceptor reads from localStorage on each request
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Get user data with the token
       const response = await apiService.getCurrentUser();
@@ -119,10 +124,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error('Failed to get user data');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('OAuth login error:', error);
       localStorage.removeItem('token');
       setToken(null);
+      
+      // Don't throw error - let the component handle navigation
+      // This prevents uncaught promise rejection
+      if (error.response?.status === 401) {
+        console.error('Token is invalid or expired');
+      }
       throw error;
     }
   };

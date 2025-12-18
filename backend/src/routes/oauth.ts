@@ -29,9 +29,9 @@ router.get('/google/callback', (req, res) => {
   return passport.authenticate('google', { session: false, failureRedirect: '/login' })(req, res, () => {
     const user = (req as AuthenticatedRequest).user;
     
-    // Generate JWT token
+    // Generate JWT token (use 'id' to match middleware expectation)
     const token = jwt.sign(
-      { userId: user._id },
+      { id: user._id },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
@@ -63,9 +63,9 @@ router.get('/facebook/callback', (req, res) => {
   return passport.authenticate('facebook', { session: false, failureRedirect: '/login' })(req, res, () => {
     const user = (req as AuthenticatedRequest).user;
     
-    // Generate JWT token
+    // Generate JWT token (use 'id' to match middleware expectation)
     const token = jwt.sign(
-      { userId: user._id },
+      { id: user._id },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );

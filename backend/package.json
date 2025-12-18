@@ -9,6 +9,8 @@
     "build": "tsc",
     "seed": "ts-node src/utils/seedData.ts",
     "seed-vendor-driver": "node src/scripts/seedVendorDriver.js",
+    "init-db": "ts-node src/scripts/initializeProductionDB.ts",
+    "init-db:prod": "npm run build && node dist/scripts/initializeProductionDB.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -44,6 +46,7 @@
     "@types/express-session": "^1.18.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.0.0",
     "@types/node": "^20.11.0",
     "@types/nodemailer": "^6.4.17",
     "@types/passport": "^1.0.17",

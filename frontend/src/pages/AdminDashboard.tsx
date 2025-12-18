@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import apiService from '../services/api';
 import { DashboardStats, AdminUser, AdminBooking, AdminService } from '../types';
+import OrderManagement from './OrderManagement';
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -163,11 +164,11 @@ const AdminDashboard: React.FC = () => {
             </li>
             <li className="nav-item" role="presentation">
               <button
-                className={`nav-link ${activeTab === 'bookings' ? 'active' : ''}`}
-                onClick={() => setActiveTab('bookings')}
+                className={`nav-link ${activeTab === 'orders' ? 'active' : ''}`}
+                onClick={() => setActiveTab('orders')}
               >
-                <i className="fas fa-calendar-check me-2"></i>
-                Bookings
+                <i className="fas fa-shopping-cart me-2"></i>
+                Order Management
               </button>
             </li>
             <li className="nav-item" role="presentation">
@@ -366,61 +367,9 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Bookings Tab */}
-        {activeTab === 'bookings' && (
-          <div className="tab-pane fade show active">
-            <div className="card shadow">
-              <div className="card-header py-3">
-                <h6 className="m-0 font-weight-bold text-primary">Manage Bookings</h6>
-              </div>
-              <div className="card-body">
-                <div className="table-responsive">
-                  <table className="table table-bordered">
-                    <thead>
-                      <tr>
-                        <th>Customer</th>
-                        <th>Service</th>
-                        <th>Route</th>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bookings.map((booking) => (
-                        <tr key={booking._id}>
-                          <td>{booking.user?.name || 'N/A'}</td>
-                          <td>{booking.serviceCategory}</td>
-                          <td>{booking.pickupLocation} → {booking.dropLocation}</td>
-                          <td>{new Date(booking.pickupDate).toLocaleDateString()}</td>
-                          <td>₹{booking.totalAmount}</td>
-                          <td>
-                            <span className={`badge ${booking.status === 'pending' ? 'bg-warning' : booking.status === 'confirmed' ? 'bg-success' : 'bg-secondary'}`}>
-                              {booking.status}
-                            </span>
-                          </td>
-                          <td>
-                            <select
-                              className="form-select form-select-sm"
-                              value={booking.status}
-                              onChange={(e) => handleUpdateBookingStatus(booking._id, e.target.value)}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="confirmed">Confirmed</option>
-                              <option value="in-progress">In Progress</option>
-                              <option value="completed">Completed</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Order Management Tab - Comprehensive SOP Workflow Management */}
+        {activeTab === 'orders' && (
+          <OrderManagement />
         )}
 
         {/* Services Tab */}
