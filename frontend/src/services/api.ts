@@ -3,8 +3,11 @@ import { User, Service, Booking, ApiResponse, DashboardStats, AdminUser, AdminBo
 import { navigationService } from './navigation';
 
 // Create axios instance with base configuration
+// Use environment variable if available, otherwise default to Render production URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://lezit-transports-backend.onrender.com/api';
+
 const api = axios.create({
-  baseURL: 'https://lezit-transports-backend.onrender.com/api',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

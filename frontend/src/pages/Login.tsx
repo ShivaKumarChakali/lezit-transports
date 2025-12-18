@@ -159,7 +159,10 @@ const Login: React.FC = () => {
                   <button 
                     type="button" 
                     className="social-btn google-btn"
-                    onClick={() => window.location.href = `https://lezit-transports-backend.onrender.com/api/auth/google`}
+                    onClick={() => {
+                      const apiBase = process.env.REACT_APP_API_URL?.replace('/api', '') || 'https://lezit-transports-backend.onrender.com';
+                      window.location.href = `${apiBase}/api/auth/google`;
+                    }}
                   >
                     <i className="fab fa-google"></i>
                     Continue with Google
@@ -167,7 +170,10 @@ const Login: React.FC = () => {
                   <button 
                     type="button" 
                     className="social-btn facebook-btn"
-                    onClick={() => window.location.href = `https://lezit-transports-backend.onrender.com/api/auth/facebook`}
+                    onClick={() => {
+                      const apiBase = process.env.REACT_APP_API_URL?.replace('/api', '') || 'https://lezit-transports-backend.onrender.com';
+                      window.location.href = `${apiBase}/api/auth/facebook`;
+                    }}
                   >
                     <i className="fab fa-facebook-f"></i>
                     Continue with Facebook
