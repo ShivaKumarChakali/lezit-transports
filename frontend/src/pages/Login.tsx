@@ -28,34 +28,30 @@ const Login: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(data.email, data.password);
+      // Login and get user data directly from response
+      const user = await login(data.email, data.password);
       toast.success('Login successful!');
       
-      // Redirect based on user role
-      // Get user from localStorage after login completes
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr);
-          if (user.role === 'admin') {
-            navigate('/admin');
-            return;
-          } else if (user.role === 'vendor') {
-            navigate('/vendor-dashboard');
-            return;
-          } else if (user.role === 'driver') {
-            navigate('/driver-dashboard');
-            return;
-          }
-        } catch (e) {
-          console.error('Error parsing user data:', e);
+      // Redirect based on user role immediately
+      if (user) {
+        if (user.role === 'admin') {
+          navigate('/admin', { replace: true });
+          return;
+        } else if (user.role === 'vendor') {
+          navigate('/vendor-dashboard', { replace: true });
+          return;
+        } else if (user.role === 'driver') {
+          navigate('/driver-dashboard', { replace: true });
+          return;
         }
       }
-      // Default redirect to home
-      navigate('/');
+      
+      // Default redirect to home for regular users
+      navigate('/', { replace: true });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       toast.error(errorMessage);
+      console.error('Login error details:', error);
     }
   };
 

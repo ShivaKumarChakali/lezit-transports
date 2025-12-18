@@ -6,6 +6,8 @@ import { navigationService } from './navigation';
 // Use environment variable if available, otherwise default to Render production URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://lezit-transports-backend.onrender.com/api';
 
+console.log('🔧 API Base URL:', API_BASE_URL);
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -26,6 +28,26 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Log error details for debugging
+    if (error.response) {
+      console.error('❌ API Error:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        fullURL: `${error.config?.baseURL}${error.config?.url}`,
+        data: error.response.data
+      });
+    } else if (error.request) {
+      console.error('❌ Network Error - No response received:', {
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        fullURL: `${error.config?.baseURL}${error.config?.url}`
+      });
+    } else {
+      console.error('❌ Request Error:', error.message);
+    }
+
     if (error.response?.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('token');

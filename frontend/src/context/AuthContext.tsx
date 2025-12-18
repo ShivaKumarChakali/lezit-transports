@@ -5,7 +5,7 @@ import apiService from '../services/api';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   loginWithToken: (token: string) => Promise<void>;
   register: (userData: { name: string; email: string; password: string; phone: string }) => Promise<void>;
   logout: () => void;
@@ -78,12 +78,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setToken(token);
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
+        return user; // Return user for redirect logic
       } else {
         throw new Error(response.message || 'Login failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      throw error;
+      // Provide more specific error messages
+      if (error.response?.status === 404) {
+        throw new Error('Login endpoint not found. Please check API configuration.');
+      } else if (error.response?.status === 401) {
+        throw new Error('Invalid email or password');
+      } else if (error.response?.status >= 500) {
+        throw new Error('Server error. Please try again later.');
+      } else if (error.message) {
+        throw new Error(error.message);
+      } else {
+        throw new Error('Login failed. Please check your connection and try again.');
+      }
     }
   };
 

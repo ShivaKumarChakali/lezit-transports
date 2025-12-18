@@ -187,17 +187,24 @@ const App: React.FC = () => {
                 </DriverRoute>
               } 
             />
-            {/* Catch-all route for 404 */}
+            {/* Catch-all route for 404 - must be last */}
             <Route 
               path="*" 
               element={
                 <div className="container py-5 text-center">
-                  <h1 className="display-1">404</h1>
-                  <h2>Page Not Found</h2>
-                  <p className="lead text-muted">The page you're looking for doesn't exist.</p>
-                  <Link to="/" className="btn btn-primary mt-3">
-                    Go to Home
-                  </Link>
+                  <div className="row justify-content-center">
+                    <div className="col-md-6">
+                      <h1 className="display-1 text-primary">404</h1>
+                      <h2 className="mb-3">Page Not Found</h2>
+                      <p className="lead text-muted mb-4">
+                        The page you're looking for doesn't exist or has been moved.
+                      </p>
+                      <Link to="/" className="btn btn-primary btn-lg">
+                        <i className="fas fa-home me-2"></i>
+                        Go to Home
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               } 
             />
