@@ -37,7 +37,13 @@ router.get('/google/callback', (req, res) => {
     );
 
     // Redirect to frontend with token
-    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback?token=${token}&provider=google`;
+    // Use production frontend URL in production, otherwise use env or localhost
+    let frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl && process.env.NODE_ENV === 'production') {
+      frontendUrl = 'https://lezit-transports-frontend.onrender.com';
+    }
+    frontendUrl = frontendUrl || 'http://localhost:3000';
+    const redirectUrl = `${frontendUrl}/oauth-callback?token=${token}&provider=google`;
     res.redirect(redirectUrl);
   });
 });
@@ -71,7 +77,13 @@ router.get('/facebook/callback', (req, res) => {
     );
 
     // Redirect to frontend with token
-    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback?token=${token}&provider=facebook`;
+    // Use production frontend URL in production, otherwise use env or localhost
+    let frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl && process.env.NODE_ENV === 'production') {
+      frontendUrl = 'https://lezit-transports-frontend.onrender.com';
+    }
+    frontendUrl = frontendUrl || 'http://localhost:3000';
+    const redirectUrl = `${frontendUrl}/oauth-callback?token=${token}&provider=facebook`;
     res.redirect(redirectUrl);
   });
 });
