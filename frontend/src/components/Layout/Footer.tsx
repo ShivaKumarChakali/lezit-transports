@@ -75,6 +75,12 @@ const Footer: React.FC = () => {
                     </Link>
                   </li>
                   <li>
+                    <Link to="/provider" className="footer-link">
+                      <i className="fas fa-briefcase me-2"></i>
+                      Become a Partner
+                    </Link>
+                  </li>
+                  <li>
                     <Link to="/contact" className="footer-link">
                       <i className="fas fa-envelope me-2"></i>
                       Contact

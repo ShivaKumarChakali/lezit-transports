@@ -9,35 +9,25 @@ const OAuthCallback: React.FC = () => {
   const { loginWithToken } = useAuth();
 
   useEffect(() => {
-    const handleOAuthCallback = async () => {
-      const token = searchParams.get('token');
-      const provider = searchParams.get('provider');
-      const error = searchParams.get('error');
+    const token = searchParams.get('token');
+    const provider = searchParams.get('provider');
+    const error = searchParams.get('error');
 
-      if (error) {
-        toast.error('OAuth authentication failed. Please try again.');
-        navigate('/login');
-        return;
-      }
+    if (error) {
+      toast.error('OAuth authentication failed. Please try again.');
+      navigate('/login');
+      return;
+    }
 
-      if (token) {
-        try {
-          // Store the token and get user data
-          await loginWithToken(token);
-          toast.success(`Successfully signed in with ${provider}!`);
-          navigate('/');
-        } catch (error: any) {
-          console.error('OAuth callback error:', error);
-          toast.error('Failed to complete authentication. Please try again.');
-          navigate('/login');
-        }
-      } else {
-        toast.error('Authentication failed. Please try again.');
-        navigate('/login');
-      }
-    };
-
-    handleOAuthCallback();
+    if (token) {
+      // Store the token and redirect to home
+      loginWithToken(token);
+      toast.success(`Successfully signed in with ${provider}!`);
+      navigate('/');
+    } else {
+      toast.error('Authentication failed. Please try again.');
+      navigate('/login');
+    }
   }, [searchParams, navigate, loginWithToken]);
 
   return (

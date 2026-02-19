@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { navigationService } from './services/navigation';
@@ -20,6 +20,7 @@ import VendorDashboard from './pages/VendorDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import VendorRegister from './pages/VendorRegister';
 import DriverRegister from './pages/DriverRegister';
+import ServiceProviderPage from './pages/ServiceProvider';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -187,27 +188,7 @@ const App: React.FC = () => {
                 </DriverRoute>
               } 
             />
-            {/* Catch-all route for 404 - must be last */}
-            <Route 
-              path="*" 
-              element={
-                <div className="container py-5 text-center">
-                  <div className="row justify-content-center">
-                    <div className="col-md-6">
-                      <h1 className="display-1 text-primary">404</h1>
-                      <h2 className="mb-3">Page Not Found</h2>
-                      <p className="lead text-muted mb-4">
-                        The page you're looking for doesn't exist or has been moved.
-                      </p>
-                      <Link to="/" className="btn btn-primary btn-lg">
-                        <i className="fas fa-home me-2"></i>
-                        Go to Home
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              } 
-            />
+            <Route path="/provider" element={<ServiceProviderPage />} />
           </Routes>
         </Layout>
         <ToastContainer

@@ -15,14 +15,11 @@ import serviceRoutes from './routes/services';
 import contactRoutes from './routes/contact';
 import adminRoutes from './routes/admin';
 import oauthRoutes from './routes/oauth';
+import providerRequestsRoutes from './routes/providerRequests';
 import quotationRoutes from './routes/quotations';
 import salesOrderRoutes from './routes/salesOrders';
 import purchaseOrderRoutes from './routes/purchaseOrders';
 import financialTransactionRoutes from './routes/financialTransactions';
-import invoiceRoutes from './routes/invoices';
-import billRoutes from './routes/bills';
-import documentRoutes from './routes/documents';
-import feedbackRoutes from './routes/feedback';
 
 // Import passport configuration
 import passport from './config/passport';
@@ -101,9 +98,6 @@ app.use(passport.initialize());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded documents
-app.use('/uploads', express.static('uploads'));
-
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
@@ -111,6 +105,15 @@ app.get('/health', (req: Request, res: Response) => {
     message: 'LEZIT TRANSPORTS API is running',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Root endpoint - provide basic info or redirect to health
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: 'LEZIT TRANSPORTS API',
+    health: '/health'
   });
 });
 
@@ -122,15 +125,13 @@ app.use('/api/quotations', quotationRoutes);
 app.use('/api/sales-orders', salesOrderRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
 app.use('/api/financial-transactions', financialTransactionRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/bills', billRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/feedback', feedbackRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/vendor', require('./routes/vendor').default);
 app.use('/api/driver', require('./routes/driver').default);
+// Provider requests
+app.use('/api/provider-requests', providerRequestsRoutes);
 
 // 404 handler
 app.use('*', (req: Request, res: Response) => {

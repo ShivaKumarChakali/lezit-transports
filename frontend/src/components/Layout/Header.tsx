@@ -94,6 +94,12 @@ const Header: React.FC = () => {
               </li>
             )}
             <li className="nav-item">
+              <Link className="nav-link" to="/provider">
+                <i className="fas fa-briefcase me-1"></i>
+                Become a Partner
+              </Link>
+            </li>
+            <li className="nav-item">
               <Link className="nav-link" to="/contact">Contact</Link>
             </li>
           </ul>

@@ -2,14 +2,28 @@ import axios, { AxiosResponse } from 'axios';
 import { User, Service, Booking, ApiResponse, DashboardStats, AdminUser, AdminBooking, VendorDashboard, DriverDashboard, Vehicle } from '../types';
 import { navigationService } from './navigation';
 
+// Determine backend base URL (use env var, prefer localhost during development)
+const getBaseURL = (): string => {
+  // If running on localhost, prioritize local backend
+  try {
+    if (typeof window !== 'undefined' && window.location.hostname.includes('localhost')) {
+      return 'http://localhost:5001/api';
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // Check for explicit env variable
+  const envUrl = (process.env as any).REACT_APP_API_URL as string | undefined;
+  if (envUrl) return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+
+  // Fallback to deployed backend
+  return 'https://lezit-transports-backend.onrender.com/api';
+};
+
 // Create axios instance with base configuration
-// Use environment variable if available, otherwise default to Render production URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://lezit-transports-backend.onrender.com/api';
-
-console.log('🔧 API Base URL:', API_BASE_URL);
-
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -28,26 +42,6 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Log error details for debugging
-    if (error.response) {
-      console.error('❌ API Error:', {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-        fullURL: `${error.config?.baseURL}${error.config?.url}`,
-        data: error.response.data
-      });
-    } else if (error.request) {
-      console.error('❌ Network Error - No response received:', {
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-        fullURL: `${error.config?.baseURL}${error.config?.url}`
-      });
-    } else {
-      console.error('❌ Request Error:', error.message);
-    }
-
     if (error.response?.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('token');
@@ -80,6 +74,22 @@ export const authAPI = {
     const response: AxiosResponse<ApiResponse<{ user: User }>> = await api.get('/auth/me');
     return response.data;
   },
+};
+
+// Provider requests API
+export const providerAPI = {
+  createProviderRequest: async (payload: any) => {
+    console.log('🌐 Provider Request - URL:', `${api.defaults.baseURL}/provider-requests`);
+    console.log('🌐 Provider Request - Payload:', payload);
+    const response = await api.post('/provider-requests', payload);
+    console.log('📨 Provider API response:', response.data);
+    return response.data;
+  },
+  getProviderRequests: async () => {
+    console.log('🌐 Fetching provider requests from:', `${api.defaults.baseURL}/provider-requests`);
+    const response = await api.get('/provider-requests');
+    return response.data;
+  }
 };
 
 // Services API
@@ -135,21 +145,6 @@ export const bookingsAPI = {
     const response: AxiosResponse<ApiResponse<Booking>> = await api.put(`/admin/bookings/${bookingId}/status`, { status });
     return response.data;
   },
-
-  getBookingByOrderId: async (orderId: string): Promise<ApiResponse<Booking>> => {
-    const response: AxiosResponse<ApiResponse<Booking>> = await api.get(`/bookings/order/${orderId}`);
-    return response.data;
-  },
-
-  getBookingTimeline: async (bookingId: string): Promise<ApiResponse<any[]>> => {
-    const response: AxiosResponse<ApiResponse<any[]>> = await api.get(`/bookings/${bookingId}/timeline`);
-    return response.data;
-  },
-
-  updateBookingDetails: async (bookingId: string, details: any): Promise<ApiResponse<Booking>> => {
-    const response: AxiosResponse<ApiResponse<Booking>> = await api.put(`/bookings/${bookingId}/details`, details);
-    return response.data;
-  },
 };
 
 // Admin API
@@ -194,348 +189,6 @@ export const contactAPI = {
   },
 };
 
-// Quotations API
-export const quotationsAPI = {
-  createQuotation: async (quotationData: {
-    bookingId: string;
-    items: Array<{ description: string; quantity?: number; unitPrice?: number; total: number }>;
-    subtotal: number;
-    taxes?: number;
-    discount?: number;
-    totalAmount: number;
-    validUntil: string;
-    termsAndConditions?: string;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/quotations', quotationData);
-    return response.data;
-  },
-
-  getQuotationById: async (quotationId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/quotations/${quotationId}`);
-    return response.data;
-  },
-
-  getQuotationsByBooking: async (bookingId: string): Promise<ApiResponse<any[]>> => {
-    const response: AxiosResponse<ApiResponse<any[]>> = await api.get(`/quotations/booking/${bookingId}`);
-    return response.data;
-  },
-
-  shareQuotation: async (quotationId: string, shareData?: { email?: string; phone?: string }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post(`/quotations/${quotationId}/share`, shareData || {});
-    return response.data;
-  },
-
-  approveQuotation: async (quotationId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post(`/quotations/${quotationId}/approve`);
-    return response.data;
-  },
-
-  rejectQuotation: async (quotationId: string, reason?: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post(`/quotations/${quotationId}/reject`, { reason });
-    return response.data;
-  },
-};
-
-// Sales Orders API
-export const salesOrdersAPI = {
-  createSalesOrder: async (salesOrderData: {
-    quotationId: string;
-    advanceAmount?: number;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/sales-orders', salesOrderData);
-    return response.data;
-  },
-
-  getSalesOrderById: async (salesOrderId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/sales-orders/${salesOrderId}`);
-    return response.data;
-  },
-
-  getSalesOrdersByBooking: async (bookingId: string): Promise<ApiResponse<any[]>> => {
-    const response: AxiosResponse<ApiResponse<any[]>> = await api.get(`/sales-orders/booking/${bookingId}`);
-    return response.data;
-  },
-
-  updateSalesOrderStatus: async (salesOrderId: string, status: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.put(`/sales-orders/${salesOrderId}/status`, { status });
-    return response.data;
-  },
-
-  getAllSalesOrders: async (page = 1, limit = 20): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/sales-orders/all?page=${page}&limit=${limit}`);
-    return response.data;
-  },
-};
-
-// Purchase Orders API
-export const purchaseOrdersAPI = {
-  createPurchaseOrder: async (purchaseOrderData: {
-    salesOrderId: string;
-    providerId: string;
-    items: Array<{ description: string; quantity?: number; unitPrice?: number; total: number }>;
-    subtotal: number;
-    taxes?: number;
-    totalAmount: number;
-    advanceAmount?: number;
-    deliveryTerms?: string;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/purchase-orders', purchaseOrderData);
-    return response.data;
-  },
-
-  getPurchaseOrderById: async (purchaseOrderId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/purchase-orders/${purchaseOrderId}`);
-    return response.data;
-  },
-
-  getPurchaseOrdersByBooking: async (bookingId: string): Promise<ApiResponse<any[]>> => {
-    const response: AxiosResponse<ApiResponse<any[]>> = await api.get(`/purchase-orders/booking/${bookingId}`);
-    return response.data;
-  },
-
-  getPurchaseOrdersByProvider: async (page = 1, limit = 20): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/purchase-orders/provider/my-orders?page=${page}&limit=${limit}`);
-    return response.data;
-  },
-
-  acknowledgePurchaseOrder: async (purchaseOrderId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post(`/purchase-orders/${purchaseOrderId}/acknowledge`);
-    return response.data;
-  },
-
-  updatePurchaseOrderStatus: async (purchaseOrderId: string, status: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.put(`/purchase-orders/${purchaseOrderId}/status`, { status });
-    return response.data;
-  },
-};
-
-// Financial Transactions API
-export const financialTransactionsAPI = {
-  recordCustomerAdvance: async (transactionData: {
-    bookingId: string;
-    amount: number;
-    paymentMethod: 'cash' | 'bank_transfer' | 'upi' | 'card' | 'cheque' | 'other';
-    paymentReference?: string;
-    receiptUrl?: string;
-    description?: string;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/financial-transactions/customer/advance', transactionData);
-    return response.data;
-  },
-
-  recordProviderAdvance: async (transactionData: {
-    bookingId: string;
-    amount: number;
-    paymentMethod: 'cash' | 'bank_transfer' | 'upi' | 'card' | 'cheque' | 'other';
-    paymentReference?: string;
-    receiptUrl?: string;
-    description?: string;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/financial-transactions/provider/advance', transactionData);
-    return response.data;
-  },
-
-  recordCustomerBalance: async (transactionData: {
-    bookingId: string;
-    amount: number;
-    paymentMethod: 'cash' | 'bank_transfer' | 'upi' | 'card' | 'cheque' | 'other';
-    paymentReference?: string;
-    receiptUrl?: string;
-    description?: string;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/financial-transactions/customer/balance', transactionData);
-    return response.data;
-  },
-
-  recordProviderBalance: async (transactionData: {
-    bookingId: string;
-    amount: number;
-    paymentMethod: 'cash' | 'bank_transfer' | 'upi' | 'card' | 'cheque' | 'other';
-    paymentReference?: string;
-    receiptUrl?: string;
-    description?: string;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/financial-transactions/provider/balance', transactionData);
-    return response.data;
-  },
-
-  getTransactionsByBooking: async (bookingId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/financial-transactions/booking/${bookingId}`);
-    return response.data;
-  },
-
-  getTransactionById: async (transactionId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/financial-transactions/${transactionId}`);
-    return response.data;
-  },
-
-  getAllTransactions: async (page = 1, limit = 50, transactionType?: string): Promise<ApiResponse<any>> => {
-    const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
-    if (transactionType) params.append('transactionType', transactionType);
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/financial-transactions/all?${params}`);
-    return response.data;
-  },
-};
-
-// Invoices API
-export const invoicesAPI = {
-  generateInvoice: async (invoiceData: {
-    salesOrderId: string;
-    dueDate?: string;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/invoices', invoiceData);
-    return response.data;
-  },
-
-  sendInvoice: async (invoiceId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post(`/invoices/${invoiceId}/send`);
-    return response.data;
-  },
-
-  markInvoicePaid: async (invoiceId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.put(`/invoices/${invoiceId}/paid`);
-    return response.data;
-  },
-
-  getInvoiceById: async (invoiceId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/invoices/${invoiceId}`);
-    return response.data;
-  },
-
-  getInvoicesByBooking: async (bookingId: string): Promise<ApiResponse<any[]>> => {
-    const response: AxiosResponse<ApiResponse<any[]>> = await api.get(`/invoices/booking/${bookingId}`);
-    return response.data;
-  },
-
-  getAllInvoices: async (page = 1, limit = 20, status?: string): Promise<ApiResponse<any>> => {
-    const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
-    if (status) params.append('status', status);
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/invoices/all?${params}`);
-    return response.data;
-  },
-};
-
-// Bills API
-export const billsAPI = {
-  generateBill: async (billData: {
-    purchaseOrderId: string;
-    dueDate?: string;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/bills', billData);
-    return response.data;
-  },
-
-  sendBill: async (billId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post(`/bills/${billId}/send`);
-    return response.data;
-  },
-
-  markBillPaid: async (billId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.put(`/bills/${billId}/paid`);
-    return response.data;
-  },
-
-  getBillById: async (billId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/bills/${billId}`);
-    return response.data;
-  },
-
-  getBillsByBooking: async (bookingId: string): Promise<ApiResponse<any[]>> => {
-    const response: AxiosResponse<ApiResponse<any[]>> = await api.get(`/bills/booking/${bookingId}`);
-    return response.data;
-  },
-
-  getBillsByProvider: async (page = 1, limit = 20): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/bills/provider/my-bills?page=${page}&limit=${limit}`);
-    return response.data;
-  },
-};
-
-// Documents API
-export const documentsAPI = {
-  uploadDocument: async (bookingId: string, file: File, documentData: {
-    documentType: 'receipt' | 'acknowledgement' | 'slip' | 'invoice' | 'bill' | 'quotation' | 'sales_order' | 'purchase_order' | 'other';
-    documentName?: string;
-    description?: string;
-    isPhysicalCopy?: boolean;
-    physicalCopyLocation?: string;
-  }): Promise<ApiResponse<any>> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('bookingId', bookingId);
-    formData.append('documentType', documentData.documentType);
-    if (documentData.documentName) formData.append('documentName', documentData.documentName);
-    if (documentData.description) formData.append('description', documentData.description);
-    if (documentData.isPhysicalCopy !== undefined) formData.append('isPhysicalCopy', documentData.isPhysicalCopy.toString());
-    if (documentData.physicalCopyLocation) formData.append('physicalCopyLocation', documentData.physicalCopyLocation);
-
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/documents/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  },
-
-  getDocumentsByBooking: async (bookingId: string, documentType?: string): Promise<ApiResponse<any[]>> => {
-    const params = documentType ? `?documentType=${documentType}` : '';
-    const response: AxiosResponse<ApiResponse<any[]>> = await api.get(`/documents/booking/${bookingId}${params}`);
-    return response.data;
-  },
-
-  getDocumentById: async (documentId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/documents/${documentId}`);
-    return response.data;
-  },
-
-  deleteDocument: async (documentId: string): Promise<ApiResponse<void>> => {
-    const response: AxiosResponse<ApiResponse<void>> = await api.delete(`/documents/${documentId}`);
-    return response.data;
-  },
-
-  getDocumentFile: async (documentId: string): Promise<Blob> => {
-    const response = await api.get(`/documents/${documentId}/file`, {
-      responseType: 'blob',
-    });
-    return response.data;
-  },
-};
-
-// Feedback API
-export const feedbackAPI = {
-  submitFeedback: async (feedbackData: {
-    bookingId: string;
-    rating: number;
-    comment?: string;
-    categories?: Record<string, any>;
-  }): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.post('/feedback', feedbackData);
-    return response.data;
-  },
-
-  getFeedbackByBooking: async (bookingId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/feedback/booking/${bookingId}`);
-    return response.data;
-  },
-
-  getFeedbackById: async (feedbackId: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/feedback/${feedbackId}`);
-    return response.data;
-  },
-
-  updateFeedbackStatus: async (feedbackId: string, status: string): Promise<ApiResponse<any>> => {
-    const response: AxiosResponse<ApiResponse<any>> = await api.put(`/feedback/${feedbackId}/status`, { status });
-    return response.data;
-  },
-
-  getAllFeedback: async (page = 1, limit = 20, feedbackFrom?: string): Promise<ApiResponse<any>> => {
-    const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
-    if (feedbackFrom) params.append('feedbackFrom', feedbackFrom);
-    const response: AxiosResponse<ApiResponse<any>> = await api.get(`/feedback/all?${params}`);
-    return response.data;
-  },
-};
-
 // Main API service object that combines all APIs
 const apiService = {
   // Auth methods
@@ -553,9 +206,6 @@ const apiService = {
   getBookingById: bookingsAPI.getBookingById,
   cancelBooking: bookingsAPI.cancelBooking,
   updateBookingStatus: bookingsAPI.updateBookingStatus,
-  getBookingByOrderId: bookingsAPI.getBookingByOrderId,
-  getBookingTimeline: bookingsAPI.getBookingTimeline,
-  updateBookingDetails: bookingsAPI.updateBookingDetails,
 
   // Admin methods
   getAdminStats: adminAPI.getAdminStats,
@@ -566,30 +216,6 @@ const apiService = {
 
   // Contact methods
   sendContactMessage: contactAPI.sendContactMessage,
-
-  // Quotation methods
-  quotations: quotationsAPI,
-
-  // Sales Order methods
-  salesOrders: salesOrdersAPI,
-
-  // Purchase Order methods
-  purchaseOrders: purchaseOrdersAPI,
-
-  // Financial Transaction methods
-  financialTransactions: financialTransactionsAPI,
-
-  // Invoice methods
-  invoices: invoicesAPI,
-
-  // Bill methods
-  bills: billsAPI,
-
-  // Document methods
-  documents: documentsAPI,
-
-  // Feedback methods
-  feedback: feedbackAPI,
 
   // Vendor methods
   vendor: {

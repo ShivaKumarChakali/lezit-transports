@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { initializeModels, verifyCollections } from './initializeModels';
 
 dotenv.config();
 
@@ -11,17 +10,6 @@ const connectDB = async (): Promise<void> => {
     await mongoose.connect(mongoURI);
     
     console.log('✅ MongoDB connected successfully');
-    
-    // Initialize all models and indexes (ensures collections exist in production)
-    try {
-      await initializeModels();
-      if (process.env.NODE_ENV === 'production') {
-        await verifyCollections(mongoose.connection);
-      }
-    } catch (error) {
-      console.warn('⚠️  Warning during model initialization:', error);
-      // Don't throw - server can still run, collections will be created on first use
-    }
     
     // Handle connection events
     mongoose.connection.on('error', (err) => {

@@ -5,7 +5,7 @@ import apiService from '../services/api';
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string) => Promise<void>;
   loginWithToken: (token: string) => Promise<void>;
   register: (userData: { name: string; email: string; password: string; phone: string }) => Promise<void>;
   logout: () => void;
@@ -78,24 +78,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setToken(token);
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        return user; // Return user for redirect logic
       } else {
         throw new Error(response.message || 'Login failed');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login error:', error);
-      // Provide more specific error messages
-      if (error.response?.status === 404) {
-        throw new Error('Login endpoint not found. Please check API configuration.');
-      } else if (error.response?.status === 401) {
-        throw new Error('Invalid email or password');
-      } else if (error.response?.status >= 500) {
-        throw new Error('Server error. Please try again later.');
-      } else if (error.message) {
-        throw new Error(error.message);
-      } else {
-        throw new Error('Login failed. Please check your connection and try again.');
-      }
+      throw error;
     }
   };
 
@@ -120,13 +108,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginWithToken = async (token: string) => {
     try {
-      // First, store the token in localStorage (this is read by the axios interceptor)
-      localStorage.setItem('token', token);
       setToken(token);
-      
-      // Small delay to ensure token is set before making the request
-      // The axios interceptor reads from localStorage on each request
-      await new Promise(resolve => setTimeout(resolve, 100));
+      localStorage.setItem('token', token);
       
       // Get user data with the token
       const response = await apiService.getCurrentUser();
@@ -136,16 +119,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error('Failed to get user data');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('OAuth login error:', error);
       localStorage.removeItem('token');
       setToken(null);
-      
-      // Don't throw error - let the component handle navigation
-      // This prevents uncaught promise rejection
-      if (error.response?.status === 401) {
-        console.error('Token is invalid or expired');
-      }
       throw error;
     }
   };

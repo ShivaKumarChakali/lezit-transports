@@ -23,9 +23,8 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
     
-    // Get user from token (support both 'id' and 'userId' for backward compatibility)
-    const userId = decoded.id || decoded.userId;
-    const user = await User.findById(userId).select('-password');
+    // Get user from token
+    const user = await User.findById(decoded.id).select('-password');
     
     if (!user) {
       res.status(401).json({
@@ -125,9 +124,8 @@ export const adminAuth = async (req: AuthRequest, res: Response, next: NextFunct
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
     
-    // Get user from token (support both 'id' and 'userId' for backward compatibility)
-    const userId = decoded.id || decoded.userId;
-    const user = await User.findById(userId).select('-password');
+    // Get user from token
+    const user = await User.findById(decoded.id).select('-password');
     
     if (!user) {
       res.status(401).json({

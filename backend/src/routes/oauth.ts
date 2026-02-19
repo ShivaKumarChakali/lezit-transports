@@ -1,6 +1,6 @@
 import express, { Request } from 'express';
 import passport from 'passport';
-import jwt from 'jsonwebtoken';
+import { generateToken } from '../utils/jwt';
 
 interface AuthenticatedRequest extends Request {
   user?: any;
@@ -29,21 +29,11 @@ router.get('/google/callback', (req, res) => {
   return passport.authenticate('google', { session: false, failureRedirect: '/login' })(req, res, () => {
     const user = (req as AuthenticatedRequest).user;
     
-    // Generate JWT token (use 'id' to match middleware expectation)
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
+    // Generate JWT token (use shared helper so payload is `{ id }`)
+    const token = generateToken((user._id as any).toString());
 
     // Redirect to frontend with token
-    // Use production frontend URL in production, otherwise use env or localhost
-    let frontendUrl = process.env.FRONTEND_URL;
-    if (!frontendUrl && process.env.NODE_ENV === 'production') {
-      frontendUrl = 'https://lezit-transports-frontend.onrender.com';
-    }
-    frontendUrl = frontendUrl || 'http://localhost:3000';
-    const redirectUrl = `${frontendUrl}/oauth-callback?token=${token}&provider=google`;
+    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback?token=${token}&provider=google`;
     res.redirect(redirectUrl);
   });
 });
@@ -69,21 +59,11 @@ router.get('/facebook/callback', (req, res) => {
   return passport.authenticate('facebook', { session: false, failureRedirect: '/login' })(req, res, () => {
     const user = (req as AuthenticatedRequest).user;
     
-    // Generate JWT token (use 'id' to match middleware expectation)
-    const token = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
+    // Generate JWT token (use shared helper so payload is `{ id }`)
+    const token = generateToken((user._id as any).toString());
 
     // Redirect to frontend with token
-    // Use production frontend URL in production, otherwise use env or localhost
-    let frontendUrl = process.env.FRONTEND_URL;
-    if (!frontendUrl && process.env.NODE_ENV === 'production') {
-      frontendUrl = 'https://lezit-transports-frontend.onrender.com';
-    }
-    frontendUrl = frontendUrl || 'http://localhost:3000';
-    const redirectUrl = `${frontendUrl}/oauth-callback?token=${token}&provider=facebook`;
+    const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/oauth-callback?token=${token}&provider=facebook`;
     res.redirect(redirectUrl);
   });
 });

@@ -9,8 +9,6 @@
     "build": "tsc",
     "seed": "ts-node src/utils/seedData.ts",
     "seed-vendor-driver": "node src/scripts/seedVendorDriver.js",
-    "init-db": "ts-node src/scripts/initializeProductionDB.ts",
-    "init-db:prod": "npm run build && node dist/scripts/initializeProductionDB.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

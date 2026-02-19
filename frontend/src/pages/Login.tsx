@@ -28,30 +28,12 @@ const Login: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      // Login and get user data directly from response
-      const user = await login(data.email, data.password);
+      await login(data.email, data.password);
       toast.success('Login successful!');
-      
-      // Redirect based on user role immediately
-      if (user) {
-        if (user.role === 'admin') {
-          navigate('/admin', { replace: true });
-          return;
-        } else if (user.role === 'vendor') {
-          navigate('/vendor-dashboard', { replace: true });
-          return;
-        } else if (user.role === 'driver') {
-          navigate('/driver-dashboard', { replace: true });
-          return;
-        }
-      }
-      
-      // Default redirect to home for regular users
-      navigate('/', { replace: true });
+      navigate('/');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       toast.error(errorMessage);
-      console.error('Login error details:', error);
     }
   };
 
@@ -177,10 +159,7 @@ const Login: React.FC = () => {
                   <button 
                     type="button" 
                     className="social-btn google-btn"
-                    onClick={() => {
-                      const apiBase = process.env.REACT_APP_API_URL?.replace('/api', '') || 'https://lezit-transports-backend.onrender.com';
-                      window.location.href = `${apiBase}/api/auth/google`;
-                    }}
+                    onClick={() => window.location.href = `https://lezit-transports-backend.onrender.com/api/auth/google`}
                   >
                     <i className="fab fa-google"></i>
                     Continue with Google
@@ -188,10 +167,7 @@ const Login: React.FC = () => {
                   <button 
                     type="button" 
                     className="social-btn facebook-btn"
-                    onClick={() => {
-                      const apiBase = process.env.REACT_APP_API_URL?.replace('/api', '') || 'https://lezit-transports-backend.onrender.com';
-                      window.location.href = `${apiBase}/api/auth/facebook`;
-                    }}
+                    onClick={() => window.location.href = `https://lezit-transports-backend.onrender.com/api/auth/facebook`}
                   >
                     <i className="fab fa-facebook-f"></i>
                     Continue with Facebook

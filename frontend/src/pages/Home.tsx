@@ -113,6 +113,13 @@ const Home: React.FC = () => {
                 <div className="mt-4">
                   <p className="text-white-50 mb-3">Want to join our network?</p>
                   <div className="d-flex flex-wrap gap-2">
+                    <Link to="/provider" className="btn btn-outline-warning btn-sm" style={{ 
+                      borderRadius: '8px',
+                      borderWidth: '1px'
+                    }}>
+                      <i className="fas fa-briefcase me-1"></i>
+                      Become a Partner
+                    </Link>
                     <Link to="/vendor-register" className="btn btn-outline-primary btn-sm" style={{ 
                       borderRadius: '8px',
                       borderWidth: '1px'

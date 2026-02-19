@@ -7,20 +7,10 @@ import { Profile } from 'passport';
 
 // Helper function to build callback URL - use full URL for OAuth
 const getCallbackURL = (path: string) => {
-  // Priority 1: Use BACKEND_URL if explicitly set
   if (process.env.BACKEND_URL) {
-    const backendUrl = process.env.BACKEND_URL.trim();
-    // Remove trailing slash if present
-    const cleanUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
-    return `${cleanUrl}${path}`;
+    return `${process.env.BACKEND_URL}${path}`;
   }
-  
-  // Priority 2: In production (Render), use production URL
-  if (process.env.NODE_ENV === 'production') {
-    return `https://lezit-transports-backend.onrender.com${path}`;
-  }
-  
-  // Priority 3: Development fallback to localhost
+  // Fallback to localhost for development
   const port = process.env.PORT || '5001';
   return `http://localhost:${port}${path}`;
 };
