@@ -104,7 +104,7 @@ const ProviderForm: React.FC = () => {
 
       <div className="mb-3">
         <label className="form-label">Email ID</label>
-        <input className="form-control" {...register('email', { required: true })} />
+        <input className="form-control" {...register('email')} />
       </div>
 
       <div className="mb-3">
@@ -186,7 +186,7 @@ const VehicleOwnerForm: React.FC = () => {
 
       <div className="mb-3">
         <label className="form-label">Email ID</label>
-        <input className="form-control" {...register('email', { required: true })} />
+        <input className="form-control" {...register('email')} />
       </div>
 
       <div className="mb-3">
@@ -270,7 +270,7 @@ const DriverForm: React.FC = () => {
 
       <div className="mb-3">
         <label className="form-label">Email ID</label>
-        <input className="form-control" {...register('email', { required: true })} />
+        <input className="form-control" {...register('email')} />
       </div>
 
       <div className="mb-3">

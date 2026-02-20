@@ -17,24 +17,31 @@ const router = express.Router();
 // Validation middleware
 const createBookingValidation = [
   body('serviceType')
+    .optional({ checkFalsy: true })
     .isIn(['person', 'goods'])
     .withMessage('Service type must be either person or goods'),
   body('serviceCategory')
+    .optional({ checkFalsy: true })
     .notEmpty()
     .withMessage('Service category is required'),
   body('pickupLocation')
+    .optional({ checkFalsy: true })
     .notEmpty()
     .withMessage('Pickup location is required'),
   body('dropLocation')
+    .optional({ checkFalsy: true })
     .notEmpty()
     .withMessage('Drop location is required'),
   body('pickupDate')
+    .optional({ checkFalsy: true })
     .isISO8601()
     .withMessage('Pickup date must be a valid date'),
   body('pickupTime')
+    .optional({ checkFalsy: true })
     .notEmpty()
     .withMessage('Pickup time is required'),
   body('totalAmount')
+    .optional({ checkFalsy: true })
     .isFloat({ min: 0 })
     .withMessage('Total amount must be a positive number'),
   body('numberOfPersons')

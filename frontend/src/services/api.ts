@@ -179,10 +179,10 @@ export const adminAPI = {
 export const contactAPI = {
   sendContactMessage: async (messageData: {
     name: string;
-    email: string;
+    email?: string;
     phone: string;
-    subject: string;
-    message: string;
+    subject?: string;
+    message?: string;
   }): Promise<ApiResponse<{ message: string }>> => {
     const response: AxiosResponse<ApiResponse<{ message: string }>> = await api.post('/contact/contact', messageData);
     return response.data;

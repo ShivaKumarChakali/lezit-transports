@@ -129,13 +129,7 @@ const Services: React.FC = () => {
                       {service.description}
                     </p>
                     
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <div>
-                        <span className="text-primary fw-bold">₹{service.basePrice}</span>
-                        {service.pricePerKm && (
-                          <span className="text-muted ms-2">+ ₹{service.pricePerKm}/km</span>
-                        )}
-                      </div>
+                    <div className="d-flex justify-content-end mb-3">
                       <span className={`badge ${service.isActive ? 'bg-success' : 'bg-secondary'}`}>
                         {service.isActive ? 'Available' : 'Unavailable'}
                       </span>

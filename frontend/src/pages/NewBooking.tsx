@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -8,29 +8,38 @@ import apiService from '../services/api';
 import { Service } from '../types';
 import { toast } from 'react-toastify';
 
+const optionalText = yup
+  .string()
+  .transform((value, originalValue) => (originalValue === '' ? undefined : value))
+  .optional();
+
 const schema = yup.object({
-  serviceType: yup.string().required('Service type is required'),
-  serviceCategory: yup.string().required('Service category is required'),
-  email: yup.string().email('Please enter a valid email').required('Email is required'),
-  pickupLocation: yup.string().required('Pickup location is required'),
-  dropLocation: yup.string().required('Drop location is required'),
-  pickupDate: yup.string().required('Pickup date is required'),
-  pickupTime: yup.string().required('Pickup time is required'),
-  dropDate: yup.string().optional(),
-  dropTime: yup.string().optional(),
-  numberOfPersons: yup.number().optional().when('serviceType', {
+  serviceType: optionalText,
+  serviceCategory: optionalText,
+  email: optionalText.email('Please enter a valid email'),
+  pickupLocation: optionalText,
+  dropLocation: optionalText,
+  pickupDate: optionalText,
+  pickupTime: optionalText,
+  dropDate: optionalText,
+  dropTime: optionalText,
+  numberOfPersons: yup
+    .number()
+    .transform((value, originalValue) => (originalValue === '' ? undefined : value))
+    .optional()
+    .when('serviceType', {
     is: (val: string) => val === 'person',
-    then: (schema) => schema.min(1, 'At least 1 person required').required('Number of persons is required'),
+    then: (schema) => schema.min(1, 'At least 1 person required'),
     otherwise: (schema) => schema.optional()
   }),
-  goodsDescription: yup.string().optional().when('serviceType', {
+  goodsDescription: optionalText.when('serviceType', {
     is: (val: string) => val === 'goods',
-    then: (schema) => schema.required('Goods description is required'),
+    then: (schema) => schema.min(2, 'Please provide a goods description'),
     otherwise: (schema) => schema.optional()
   }),
-  vehicleType: yup.string().required('Vehicle type is required'),
+  vehicleType: optionalText,
   driverRequired: yup.boolean(),
-  specialInstructions: yup.string().optional(),
+  specialInstructions: optionalText,
 }).required();
 
 const NewBooking: React.FC = () => {
@@ -41,7 +50,6 @@ const NewBooking: React.FC = () => {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [estimatedPrice, setEstimatedPrice] = useState(0);
 
   const {
     register,
@@ -95,35 +103,6 @@ const NewBooking: React.FC = () => {
     return icon;
   };
 
-  const calculatePrice = useCallback(() => {
-    if (!selectedService || !watchedValues.pickupLocation || !watchedValues.dropLocation) {
-      setEstimatedPrice(0);
-      return;
-    }
-
-    // Simple price calculation (you can make this more sophisticated)
-    let basePrice = selectedService.basePrice;
-    if (selectedService.pricePerKm) {
-      // Estimate distance (you can integrate with Google Maps API for accurate distance)
-      const estimatedDistance = 50; // km
-      basePrice += selectedService.pricePerKm * estimatedDistance;
-    }
-
-    // Add extra charges for additional services
-    if (watchedValues.driverRequired) {
-      basePrice += 200; // Driver charge
-    }
-
-    if (watchedValues.serviceType === 'person' && watchedValues.numberOfPersons && watchedValues.numberOfPersons > 4) {
-      basePrice += (watchedValues.numberOfPersons - 4) * 100; // Extra person charge
-    }
-
-    setEstimatedPrice(basePrice);
-  }, [selectedService, watchedValues.pickupLocation, watchedValues.dropLocation, watchedValues.driverRequired, watchedValues.serviceType, watchedValues.numberOfPersons]);
-
-  useEffect(() => {
-    calculatePrice();
-  }, [calculatePrice]);
 
   const handleServiceSelect = (service: Service) => {
     setSelectedService(service);
@@ -136,7 +115,6 @@ const NewBooking: React.FC = () => {
     try {
       const bookingData = {
         ...data,
-        totalAmount: estimatedPrice,
         paymentStatus: 'pending',
         paymentMethod: 'cash'
       };
@@ -168,13 +146,6 @@ const NewBooking: React.FC = () => {
     }
   };
 
-  const vehicleTypes = [
-    { value: 'sedan', label: 'Sedan (4 seats)', icon: 'fas fa-car' },
-    { value: 'suv', label: 'SUV (6 seats)', icon: 'fas fa-car-side' },
-    { value: 'minibus', label: 'Minibus (12 seats)', icon: 'fas fa-bus' },
-    { value: 'truck', label: 'Truck (Cargo)', icon: 'fas fa-truck' },
-    { value: 'tempo', label: 'Tempo (Goods)', icon: 'fas fa-truck-moving' }
-  ];
 
   return (
     <div className="container py-5">
@@ -248,15 +219,11 @@ const NewBooking: React.FC = () => {
                             </div>
                             <h6 className="card-title">{service.name}</h6>
                             <p className="card-text text-muted small">{service.description}</p>
-                            <div className="d-flex justify-content-between align-items-center">
-                              <span className="text-primary fw-bold">₹{service.basePrice}</span>
-                              {service.pricePerKm && (
-                                <small className="text-muted">+ ₹{service.pricePerKm}/km</small>
-                              )}
+                            <div className="d-flex justify-content-end">
+                              <span className={`badge ${service.isActive ? 'bg-success' : 'bg-secondary'}`}>
+                                {service.isActive ? 'Available' : 'Unavailable'}
+                              </span>
                             </div>
-                            <span className={`badge ${service.isActive ? 'bg-success' : 'bg-secondary'}`}>
-                              {service.isActive ? 'Available' : 'Unavailable'}
-                            </span>
                           </div>
                         </div>
                       </div>
@@ -267,8 +234,7 @@ const NewBooking: React.FC = () => {
                     <div className="mt-4 p-3 bg-light rounded">
                       <h6 className="mb-2">Selected Service:</h6>
                       <p className="mb-0">
-                        <strong>{selectedService.name}</strong> - ₹{selectedService.basePrice}
-                        {selectedService.pricePerKm && ` + ₹${selectedService.pricePerKm}/km`}
+                        <strong>{selectedService.name}</strong>
                       </p>
                     </div>
                   )}
@@ -292,7 +258,7 @@ const NewBooking: React.FC = () => {
                 <div className="card-body p-4">
                   <div className="row">
                     <div className="col-md-6 mb-3">
-                      <label className="form-label">Email Address *</label>
+                      <label className="form-label">Email Address</label>
                       <input
                         type="email"
                         className={`form-control ${errors.email ? 'is-invalid' : ''}`}
@@ -304,7 +270,7 @@ const NewBooking: React.FC = () => {
                       )}
                     </div>
                     <div className="col-md-6 mb-3">
-                      <label className="form-label">Pickup Location *</label>
+                      <label className="form-label">Pickup Location</label>
                       <input
                         type="text"
                         className={`form-control ${errors.pickupLocation ? 'is-invalid' : ''}`}
@@ -319,7 +285,7 @@ const NewBooking: React.FC = () => {
 
                   <div className="row">
                     <div className="col-md-6 mb-3">
-                      <label className="form-label">Drop Location *</label>
+                      <label className="form-label">Drop Location</label>
                       <input
                         type="text"
                         className={`form-control ${errors.dropLocation ? 'is-invalid' : ''}`}
@@ -334,7 +300,7 @@ const NewBooking: React.FC = () => {
 
                   <div className="row">
                     <div className="col-md-6 mb-3">
-                      <label className="form-label">Pickup Date *</label>
+                      <label className="form-label">Pickup Date</label>
                       <input
                         type="date"
                         className={`form-control ${errors.pickupDate ? 'is-invalid' : ''}`}
@@ -345,7 +311,7 @@ const NewBooking: React.FC = () => {
                       )}
                     </div>
                     <div className="col-md-6 mb-3">
-                      <label className="form-label">Pickup Time *</label>
+                      <label className="form-label">Pickup Time</label>
                       <input
                         type="time"
                         className={`form-control ${errors.pickupTime ? 'is-invalid' : ''}`}
@@ -359,18 +325,13 @@ const NewBooking: React.FC = () => {
 
                   <div className="row">
                     <div className="col-md-6 mb-3">
-                      <label className="form-label">Vehicle Type *</label>
-                      <select
-                        className={`form-select ${errors.vehicleType ? 'is-invalid' : ''}`}
+                      <label className="form-label">Vehicle Type</label>
+                      <input
+                        type="text"
+                        className={`form-control ${errors.vehicleType ? 'is-invalid' : ''}`}
+                        placeholder="Enter vehicle type"
                         {...register('vehicleType')}
-                      >
-                        <option value="">Select vehicle type</option>
-                        {vehicleTypes.map((vehicle) => (
-                          <option key={vehicle.value} value={vehicle.value}>
-                            {vehicle.label}
-                          </option>
-                        ))}
-                      </select>
+                      />
                       {errors.vehicleType && (
                         <div className="invalid-feedback">{errors.vehicleType.message}</div>
                       )}
@@ -392,7 +353,7 @@ const NewBooking: React.FC = () => {
 
                   {watchedValues.serviceType === 'person' && (
                     <div className="mb-3">
-                      <label className="form-label">Number of Persons *</label>
+                      <label className="form-label">Number of Persons</label>
                       <input
                         type="number"
                         className={`form-control ${errors.numberOfPersons ? 'is-invalid' : ''}`}
@@ -407,7 +368,7 @@ const NewBooking: React.FC = () => {
 
                   {watchedValues.serviceType === 'goods' && (
                     <div className="mb-3">
-                      <label className="form-label">Goods Description *</label>
+                      <label className="form-label">Goods Description</label>
                       <textarea
                         className={`form-control ${errors.goodsDescription ? 'is-invalid' : ''}`}
                         rows={3}
@@ -433,33 +394,6 @@ const NewBooking: React.FC = () => {
               </div>
             </div>
 
-            {/* Price Estimation */}
-            <div className="col-lg-4">
-              <div className="card border-0 shadow-sm">
-                <div className="card-header bg-success text-white">
-                  <h5 className="mb-0">
-                    <i className="fas fa-calculator me-2"></i>
-                    Price Estimation
-                  </h5>
-                </div>
-                <div className="card-body">
-                  {selectedService && (
-                    <div className="mb-3">
-                      <h6>Service: {selectedService.name}</h6>
-                      <p className="text-muted mb-2">Base Price: ₹{selectedService.basePrice}</p>
-                      {selectedService.pricePerKm && (
-                        <p className="text-muted mb-2">Per KM: ₹{selectedService.pricePerKm}</p>
-                      )}
-                    </div>
-                  )}
-                  
-                  <div className="border-top pt-3">
-                    <h4 className="text-primary mb-0">Estimated Total: ₹{estimatedPrice}</h4>
-                    <small className="text-muted">* Final price may vary based on actual distance</small>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -499,9 +433,7 @@ const NewBooking: React.FC = () => {
                         <h6 className="text-primary mb-2">Special Instructions</h6>
                         <p className="text-muted">{watchedValues.specialInstructions || 'None'}</p>
                       </div>
-                      <div className="col-md-4 text-end">
-                        <h4 className="text-primary mb-0">Total Amount: ₹{estimatedPrice}</h4>
-                      </div>
+                      <div className="col-md-4 text-end"></div>
                     </div>
                   </div>
                 </div>

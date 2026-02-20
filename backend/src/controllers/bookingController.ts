@@ -56,11 +56,11 @@ export const createBooking = async (req: AuthRequest, res: Response): Promise<vo
       updatedByRole: (req.user?.role as any) || 'admin'
     });
 
-    // Send confirmation email
+    // Send confirmation email (non-blocking)
     try {
       const user = await User.findById(userId);
       const emailToUse = req.body.email || user?.email;
-      
+
       if (emailToUse) {
         const emailData = {
           bookingId: booking._id,
@@ -75,7 +75,11 @@ export const createBooking = async (req: AuthRequest, res: Response): Promise<vo
           totalAmount: booking.totalAmount
         };
 
-        await sendBookingConfirmation(emailData, emailToUse);
+        setImmediate(() => {
+          sendBookingConfirmation(emailData, emailToUse).catch((emailError) => {
+            console.error('Failed to send confirmation email:', emailError);
+          });
+        });
       }
     } catch (emailError) {
       console.error('Failed to send confirmation email:', emailError);

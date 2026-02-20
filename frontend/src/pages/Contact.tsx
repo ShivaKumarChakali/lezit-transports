@@ -5,15 +5,26 @@ import * as yup from 'yup';
 import { toast } from 'react-toastify';
 import apiService from '../services/api';
 
-const schema = yup.object({
-  name: yup.string().required('Name is required').min(2, 'Name must be at least 2 characters'),
-  email: yup.string().email('Please enter a valid email').required('Email is required'),
-  phone: yup.string().required('Phone number is required').min(10, 'Please enter a valid phone number'),
-  subject: yup.string().required('Subject is required').min(5, 'Subject must be at least 5 characters'),
-  message: yup.string().required('Message is required').min(10, 'Message must be at least 10 characters')
-}).required();
+const optionalText = yup
+  .string()
+  .transform((value, originalValue) => (originalValue === '' ? undefined : value))
+  .optional();
 
-type ContactFormData = yup.InferType<typeof schema>;
+type ContactFormData = {
+  name: string;
+  phone: string;
+  email?: string;
+  subject?: string;
+  message?: string;
+};
+
+const schema: yup.ObjectSchema<ContactFormData> = yup.object({
+  name: yup.string().required('Name is required').min(2, 'Name must be at least 2 characters'),
+  email: optionalText.email('Please enter a valid email'),
+  phone: yup.string().required('Phone number is required').min(10, 'Please enter a valid phone number'),
+  subject: optionalText.min(5, 'Subject must be at least 5 characters'),
+  message: optionalText.min(10, 'Message must be at least 10 characters')
+}).required();
 
 const Contact: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -131,7 +142,7 @@ const Contact: React.FC = () => {
                     )}
                   </div>
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">Email Address *</label>
+                    <label className="form-label">Email Address</label>
                     <input
                       type="email"
                       className={`form-control ${errors.email ? 'is-invalid' : ''}`}
@@ -158,7 +169,7 @@ const Contact: React.FC = () => {
                     )}
                   </div>
                   <div className="col-md-6 mb-3">
-                    <label className="form-label">Subject *</label>
+                    <label className="form-label">Subject</label>
                     <input
                       type="text"
                       className={`form-control ${errors.subject ? 'is-invalid' : ''}`}
@@ -172,7 +183,7 @@ const Contact: React.FC = () => {
                 </div>
 
                 <div className="mb-4">
-                  <label className="form-label">Message *</label>
+                  <label className="form-label">Message</label>
                   <textarea
                     className={`form-control ${errors.message ? 'is-invalid' : ''}`}
                     rows={5}

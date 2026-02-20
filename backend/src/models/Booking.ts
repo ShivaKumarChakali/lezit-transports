@@ -19,33 +19,26 @@ const bookingSchema = new Schema<IBookingDocument>({
   },
   serviceType: {
     type: String,
-    enum: ['person', 'goods'],
-    required: true
+    enum: ['person', 'goods']
   },
   serviceCategory: {
-    type: String,
-    required: true
+    type: String
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
   },
   pickupLocation: {
-    type: String,
-    required: [true, 'Pickup location is required']
+    type: String
   },
   dropLocation: {
-    type: String,
-    required: [true, 'Drop location is required']
+    type: String
   },
   pickupDate: {
-    type: Date,
-    required: [true, 'Pickup date is required']
+    type: Date
   },
   pickupTime: {
-    type: String,
-    required: [true, 'Pickup time is required']
+    type: String
   },
   dropDate: {
     type: Date
@@ -92,7 +85,6 @@ const bookingSchema = new Schema<IBookingDocument>({
   },
   totalAmount: {
     type: Number,
-    required: [true, 'Total amount is required'],
     min: [0, 'Total amount cannot be negative']
   },
   paymentStatus: {
