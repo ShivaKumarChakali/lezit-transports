@@ -5,26 +5,21 @@ import axios from 'axios';
 type EmailService = 'smtp' | 'sendgrid';
 const EMAIL_SERVICE: EmailService = (process.env.EMAIL_SERVICE as EmailService) || 'smtp';
 
-// SendGrid transporter
-const sendGridTransporter = nodemailer.createTransport({
-  host: 'smtp.sendgrid.net',
-  port: 587,
-  secure: false,
-  auth: {
-    user: 'apikey',
-    pass: process.env.SENDGRID_API_KEY || ''
-  }
-} as any);
+// Timeouts for SMTP (cloud hosts like Render often block or throttle outbound SMTP to Zoho)
+const SMTP_CONNECTION_TIMEOUT = 15000; // 15s
+const SMTP_GREETING_TIMEOUT = 10000;  // 10s
 
-// Zoho SMTP transporter (Render-compatible TLS approach)
+// Zoho SMTP transporter (use SendGrid Web API on Render – SMTP often blocked there)
 const zohoSmtpTransporter = nodemailer.createTransport({
   host: 'smtppro.zoho.in',
-  port: 587, // Use TLS instead of SSL for better Render compatibility
+  port: 587,
   secure: false,
   auth: {
     user: process.env.SMTP_USER_BOOKING || 'bookings@lezittransports.com',
     pass: process.env.SMTP_PASS_BOOKING || ''
-  }
+  },
+  connectionTimeout: SMTP_CONNECTION_TIMEOUT,
+  greetingTimeout: SMTP_GREETING_TIMEOUT
 } as any);
 
 const zohoSupportTransporter = nodemailer.createTransport({
@@ -34,23 +29,51 @@ const zohoSupportTransporter = nodemailer.createTransport({
   auth: {
     user: process.env.SMTP_USER_SUPPORT || 'support@lezittransports.com',
     pass: process.env.SMTP_PASS_SUPPORT || ''
-  }
+  },
+  connectionTimeout: SMTP_CONNECTION_TIMEOUT,
+  greetingTimeout: SMTP_GREETING_TIMEOUT
 } as any);
 
-// Select appropriate transporter based on configuration
-const getBookingTransporter = (): Transporter<any> => {
-  if (EMAIL_SERVICE === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-    return sendGridTransporter;
+// Select appropriate transporter based on configuration (Zoho only – SendGrid uses Web API)
+const getBookingTransporter = (): Transporter<any> => zohoSmtpTransporter;
+const getSupportTransporter = (): Transporter<any> => zohoSupportTransporter;
+
+/** Send email via SendGrid Web API (HTTPS). Use this on Render – SMTP is often blocked. */
+const sendViaSendGrid = async (
+  to: string,
+  from: string,
+  subject: string,
+  html: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  const key = process.env.SENDGRID_API_KEY;
+  if (!key) return { success: false, error: 'SENDGRID_API_KEY not set' };
+  try {
+    const res = await axios.post(
+      'https://api.sendgrid.com/v3/mail/send',
+      {
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: from, name: 'LEZIT Transports' },
+        subject,
+        content: [{ type: 'text/html', value: html }],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      }
+    );
+    const messageId = res.headers?.['x-message-id'];
+    return { success: true, messageId: messageId || undefined };
+  } catch (err: any) {
+    const msg = err?.response?.data?.errors?.[0]?.message || err?.message || String(err);
+    return { success: false, error: msg };
   }
-  return zohoSmtpTransporter;
 };
 
-const getSupportTransporter = (): Transporter<any> => {
-  if (EMAIL_SERVICE === 'sendgrid' && process.env.SENDGRID_API_KEY) {
-    return sendGridTransporter;
-  }
-  return zohoSupportTransporter;
-};
+const useSendGrid = (): boolean =>
+  EMAIL_SERVICE === 'sendgrid' && Boolean(process.env.SENDGRID_API_KEY);
 
 // Verify email configurations (runs on module load)
 const verifyEmailConfigs = async () => {
@@ -59,14 +82,7 @@ const verifyEmailConfigs = async () => {
 
   if (EMAIL_SERVICE === 'sendgrid') {
     if (process.env.SENDGRID_API_KEY) {
-      try {
-        const transporter = getBookingTransporter();
-        await transporter.verify();
-        console.log('✅ SendGrid email service configured and connection verified');
-      } catch (err: any) {
-        console.warn('⚠️  SendGrid connection verification failed:', err?.message || err);
-        console.warn('   Check SENDGRID_API_KEY and SENDGRID_FROM_EMAIL (must be verified in SendGrid).');
-      }
+      console.log('✅ SendGrid email configured (Web API – no SMTP, works on Render)');
       return;
     }
     console.warn('⚠️  SendGrid API key not configured. Set SENDGRID_API_KEY in .env');
@@ -414,24 +430,23 @@ const emailTemplates = {
 
 // Email service functions
 export const sendBookingConfirmation = async (bookingData: any, userEmail: string) => {
+  if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
+    console.warn('⚠️  Email not configured - skipping booking confirmation email');
+    return { success: false, error: 'Email service not configured' };
+  }
+  const template = emailTemplates.bookingConfirmation(bookingData);
+  const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
+
+  if (useSendGrid()) {
+    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html);
+    if (result.success) console.log('✅ Booking confirmation email sent to:', userEmail);
+    else console.error('❌ Failed to send booking confirmation email:', result.error);
+    return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
+  }
   try {
-    // Check if email is configured
-    if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
-      console.warn('⚠️  Email not configured - skipping booking confirmation email');
-      return { success: false, error: 'Email service not configured' };
-    }
-
-    const template = emailTemplates.bookingConfirmation(bookingData);
-    
-    const mailOptions = {
-      from: process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com',
-      to: userEmail,
-      subject: template.subject,
-      html: template.html
-    };
-
-    const transporter = getBookingTransporter();
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getBookingTransporter().sendMail({
+      from, to: userEmail, subject: template.subject, html: template.html,
+    });
     console.log('✅ Booking confirmation email sent to:', userEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
@@ -441,24 +456,23 @@ export const sendBookingConfirmation = async (bookingData: any, userEmail: strin
 };
 
 export const sendBookingCancellation = async (bookingData: any, userEmail: string) => {
+  if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
+    console.warn('⚠️  Email not configured - skipping booking cancellation email');
+    return { success: false, error: 'Email service not configured' };
+  }
+  const template = emailTemplates.bookingCancellation(bookingData);
+  const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
+
+  if (useSendGrid()) {
+    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html);
+    if (result.success) console.log('✅ Booking cancellation email sent to:', userEmail);
+    else console.error('❌ Failed to send booking cancellation email:', result.error);
+    return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
+  }
   try {
-    // Check if email is configured
-    if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
-      console.warn('⚠️  Email not configured - skipping booking cancellation email');
-      return { success: false, error: 'Email service not configured' };
-    }
-
-    const template = emailTemplates.bookingCancellation(bookingData);
-    
-    const mailOptions = {
-      from: process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com',
-      to: userEmail,
-      subject: template.subject,
-      html: template.html
-    };
-
-    const transporter = getBookingTransporter();
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getBookingTransporter().sendMail({
+      from, to: userEmail, subject: template.subject, html: template.html,
+    });
     console.log('✅ Booking cancellation email sent to:', userEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
@@ -468,25 +482,25 @@ export const sendBookingCancellation = async (bookingData: any, userEmail: strin
 };
 
 export const sendContactForm = async (contactData: any) => {
+  if (!process.env.SMTP_USER_SUPPORT && !process.env.SENDGRID_API_KEY) {
+    console.warn('⚠️  Email not configured - skipping contact form email');
+    return { success: false, error: 'Email service not configured' };
+  }
+  const template = emailTemplates.contactForm(contactData);
+  const from = process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_FROM_EMAIL || 'support@lezittransports.com';
+  const to = process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_TO_EMAIL || 'support@lezittransports.com';
+
+  if (useSendGrid()) {
+    const result = await sendViaSendGrid(to, from, template.subject, template.html);
+    if (result.success) console.log('✅ Contact form email sent to:', to);
+    else console.error('❌ Failed to send contact form email:', result.error);
+    return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
+  }
   try {
-    // Check if email is configured
-    if (!process.env.SMTP_USER_SUPPORT && !process.env.SENDGRID_API_KEY) {
-      console.warn('⚠️  Email not configured - skipping contact form email');
-      return { success: false, error: 'Email service not configured' };
-    }
-
-    const template = emailTemplates.contactForm(contactData);
-    
-    const mailOptions = {
-      from: process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_FROM_EMAIL || 'support@lezittransports.com',
-      to: process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_TO_EMAIL || 'support@lezittransports.com',
-      subject: template.subject,
-      html: template.html
-    };
-
-    const transporter = getSupportTransporter();
-    const result = await transporter.sendMail(mailOptions);
-    console.log('✅ Contact form email sent to:', mailOptions.to);
+    const result = await getSupportTransporter().sendMail({
+      from, to, subject: template.subject, html: template.html,
+    });
+    console.log('✅ Contact form email sent to:', to);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
     console.error('❌ Failed to send contact form email:', error.message);
@@ -495,24 +509,23 @@ export const sendContactForm = async (contactData: any) => {
 };
 
 export const sendQuotationEmail = async (quotationData: any, userEmail: string) => {
+  if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
+    console.warn('⚠️  Email not configured - skipping quotation email');
+    return { success: false, error: 'Email service not configured' };
+  }
+  const template = emailTemplates.quotation(quotationData);
+  const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
+
+  if (useSendGrid()) {
+    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html);
+    if (result.success) console.log('✅ Quotation email sent to:', userEmail);
+    else console.error('❌ Failed to send quotation email:', result.error);
+    return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
+  }
   try {
-    // Check if email is configured
-    if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
-      console.warn('⚠️  Email not configured - skipping quotation email');
-      return { success: false, error: 'Email service not configured' };
-    }
-
-    const template = emailTemplates.quotation(quotationData);
-    
-    const mailOptions = {
-      from: process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com',
-      to: userEmail,
-      subject: template.subject,
-      html: template.html
-    };
-
-    const transporter = getBookingTransporter();
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getBookingTransporter().sendMail({
+      from, to: userEmail, subject: template.subject, html: template.html,
+    });
     console.log('✅ Quotation email sent to:', userEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
@@ -522,25 +535,25 @@ export const sendQuotationEmail = async (quotationData: any, userEmail: string) 
 };
 
 export const sendSupportRequest = async (supportData: any) => {
+  if (!process.env.SMTP_USER_SUPPORT && !process.env.SENDGRID_API_KEY) {
+    console.warn('⚠️  Email not configured - skipping support request email');
+    return { success: false, error: 'Email service not configured' };
+  }
+  const template = emailTemplates.supportRequest(supportData);
+  const from = process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_FROM_EMAIL || 'support@lezittransports.com';
+  const to = process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_TO_EMAIL || 'support@lezittransports.com';
+
+  if (useSendGrid()) {
+    const result = await sendViaSendGrid(to, from, template.subject, template.html);
+    if (result.success) console.log('✅ Support request email sent to:', to);
+    else console.error('❌ Failed to send support request email:', result.error);
+    return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
+  }
   try {
-    // Check if email is configured
-    if (!process.env.SMTP_USER_SUPPORT && !process.env.SENDGRID_API_KEY) {
-      console.warn('⚠️  Email not configured - skipping support request email');
-      return { success: false, error: 'Email service not configured' };
-    }
-
-    const template = emailTemplates.supportRequest(supportData);
-    
-    const mailOptions = {
-      from: process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_FROM_EMAIL || 'support@lezittransports.com',
-      to: process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_TO_EMAIL || 'support@lezittransports.com',
-      subject: template.subject,
-      html: template.html
-    };
-
-    const transporter = getSupportTransporter();
-    const result = await transporter.sendMail(mailOptions);
-    console.log('✅ Support request email sent to:', mailOptions.to);
+    const result = await getSupportTransporter().sendMail({
+      from, to, subject: template.subject, html: template.html,
+    });
+    console.log('✅ Support request email sent to:', to);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
     console.error('❌ Failed to send support request email:', error.message);
@@ -580,9 +593,13 @@ export const getEmailStatus = async (): Promise<{
     };
   }
 
+  // SendGrid uses Web API (HTTPS) – no SMTP verify; consider configured = ready
+  if (EMAIL_SERVICE === 'sendgrid') {
+    return { service: 'sendgrid', configured: true, fromEmail, verified: true };
+  }
+
   try {
-    const transporter = getBookingTransporter();
-    await transporter.verify();
+    await getBookingTransporter().verify();
     return { service: EMAIL_SERVICE, configured: true, fromEmail, verified: true };
   } catch (err: any) {
     return {
@@ -604,14 +621,15 @@ export const sendTestEmail = async (to: string): Promise<{ success: boolean; err
     process.env.SMTP_USER_BOOKING ||
     process.env.SENDGRID_FROM_EMAIL ||
     'bookings@lezittransports.com';
+  const subject = 'LEZIT Transports – Email test';
+  const html = '<p>This is a test email from LEZIT Transports. SendGrid/email is working.</p>';
+
+  if (useSendGrid()) {
+    const result = await sendViaSendGrid(to, from, subject, html);
+    return { success: result.success, error: result.error };
+  }
   try {
-    const transporter = getBookingTransporter();
-    await transporter.sendMail({
-      from,
-      to,
-      subject: 'LEZIT Transports – Email test',
-      html: '<p>This is a test email from LEZIT Transports. SendGrid/email is working.</p>',
-    });
+    await getBookingTransporter().sendMail({ from, to, subject, html });
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err?.message || String(err) };
