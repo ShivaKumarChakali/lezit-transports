@@ -100,9 +100,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error(response.message || 'Registration failed');
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+    } catch (error: any) {
+      // Log the actual error details
+      if (error.response?.data?.errors) {
+        console.error('Registration validation errors:', error.response.data.errors);
+        const errorMsg = error.response.data.errors.map((e: any) => e.msg).join(', ');
+        throw new Error(errorMsg);
+      } else if (error.response?.data?.message) {
+        console.error('Registration error:', error.response.data.message);
+        throw new Error(error.response.data.message);
+      } else {
+        console.error('Registration error:', error);
+        throw error;
+      }
     }
   };
 

@@ -108,6 +108,67 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// Email health (verify SendGrid/SMTP config and connection)
+app.get('/api/health/email', async (req: Request, res: Response) => {
+  try {
+    const { getEmailStatus } = await import('./utils/emailService');
+    const status = await getEmailStatus();
+    res.status(200).json({
+      success: true,
+      email: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err?.message || 'Email status check failed',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Send a test email (dev only or when EMAIL_TEST_SECRET is set and provided)
+app.post('/api/test-email', async (req: Request, res: Response) => {
+  const isDev = process.env.NODE_ENV !== 'production';
+  const secret = req.body?.secret ?? req.query?.secret;
+  const allowed = isDev || (process.env.EMAIL_TEST_SECRET && secret === process.env.EMAIL_TEST_SECRET);
+  if (!allowed) {
+    res.status(403).json({
+      success: false,
+      message: 'Not allowed. Use only in development or set EMAIL_TEST_SECRET and pass it in body/query.',
+    });
+    return;
+  }
+  const to = req.body?.to ?? req.query?.to;
+  if (!to || typeof to !== 'string') {
+    res.status(400).json({
+      success: false,
+      message: 'Provide "to" (email address) in JSON body or query.',
+    });
+    return;
+  }
+  try {
+    const { sendTestEmail } = await import('./utils/emailService');
+    const result = await sendTestEmail(to);
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: `Test email sent to ${to}. Check inbox (and spam).`,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.error || 'Failed to send test email',
+      });
+    }
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      message: err?.message || 'Test email failed',
+    });
+  }
+});
+
 // Root endpoint - provide basic info or redirect to health
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({

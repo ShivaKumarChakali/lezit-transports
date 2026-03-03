@@ -1,45 +1,86 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { Transporter } from 'nodemailer';
+import axios from 'axios';
 
-// Email configurations
-const bookingEmailConfig = {
-  host: process.env.SMTP_HOST || 'smtppro.zoho.in',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true, // true for 465, false for other ports
+// Email service type
+type EmailService = 'smtp' | 'sendgrid';
+const EMAIL_SERVICE: EmailService = (process.env.EMAIL_SERVICE as EmailService) || 'smtp';
+
+// SendGrid transporter
+const sendGridTransporter = nodemailer.createTransport({
+  host: 'smtp.sendgrid.net',
+  port: 587,
+  secure: false,
+  auth: {
+    user: 'apikey',
+    pass: process.env.SENDGRID_API_KEY || ''
+  }
+} as any);
+
+// Zoho SMTP transporter (Render-compatible TLS approach)
+const zohoSmtpTransporter = nodemailer.createTransport({
+  host: 'smtppro.zoho.in',
+  port: 587, // Use TLS instead of SSL for better Render compatibility
+  secure: false,
   auth: {
     user: process.env.SMTP_USER_BOOKING || 'bookings@lezittransports.com',
     pass: process.env.SMTP_PASS_BOOKING || ''
   }
-};
+} as any);
 
-const supportEmailConfig = {
-  host: process.env.SMTP_HOST || 'smtppro.zoho.in',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true, // true for 465, false for other ports
+const zohoSupportTransporter = nodemailer.createTransport({
+  host: 'smtppro.zoho.in',
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.SMTP_USER_SUPPORT || 'support@lezittransports.com',
     pass: process.env.SMTP_PASS_SUPPORT || ''
   }
+} as any);
+
+// Select appropriate transporter based on configuration
+const getBookingTransporter = (): Transporter<any> => {
+  if (EMAIL_SERVICE === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+    return sendGridTransporter;
+  }
+  return zohoSmtpTransporter;
 };
 
-// Create transporters
-const bookingTransporter = nodemailer.createTransport(bookingEmailConfig);
-const supportTransporter = nodemailer.createTransport(supportEmailConfig);
+const getSupportTransporter = (): Transporter<any> => {
+  if (EMAIL_SERVICE === 'sendgrid' && process.env.SENDGRID_API_KEY) {
+    return sendGridTransporter;
+  }
+  return zohoSupportTransporter;
+};
 
-// Verify email configurations
+// Verify email configurations (runs on module load)
 const verifyEmailConfigs = async () => {
-  // Only verify if credentials are provided
   const hasBookingCredentials = process.env.SMTP_USER_BOOKING && process.env.SMTP_PASS_BOOKING;
   const hasSupportCredentials = process.env.SMTP_USER_SUPPORT && process.env.SMTP_PASS_SUPPORT;
 
+  if (EMAIL_SERVICE === 'sendgrid') {
+    if (process.env.SENDGRID_API_KEY) {
+      try {
+        const transporter = getBookingTransporter();
+        await transporter.verify();
+        console.log('✅ SendGrid email service configured and connection verified');
+      } catch (err: any) {
+        console.warn('⚠️  SendGrid connection verification failed:', err?.message || err);
+        console.warn('   Check SENDGRID_API_KEY and SENDGRID_FROM_EMAIL (must be verified in SendGrid).');
+      }
+      return;
+    }
+    console.warn('⚠️  SendGrid API key not configured. Set SENDGRID_API_KEY in .env');
+    return;
+  }
+
   if (hasBookingCredentials) {
     try {
-      await bookingTransporter.verify();
-      console.log('✅ Booking email configuration verified');
+      const transporter = getBookingTransporter();
+      await transporter.verify();
+      console.log('✅ Booking email configuration verified (Zoho SMTP port 587 - TLS)');
     } catch (error: any) {
-      console.warn('⚠️  Booking email configuration failed:', error.code === 'EAUTH' ? 'Authentication failed - check SMTP credentials' : error.message);
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('   Email functionality will be disabled until credentials are configured correctly.');
-      }
+      console.warn('⚠️  Booking email configuration failed:', error.message);
+      console.warn('   Will attempt to send emails anyway (non-blocking)');
     }
   } else {
     console.warn('⚠️  Booking email credentials not configured. Set SMTP_USER_BOOKING and SMTP_PASS_BOOKING in .env');
@@ -47,13 +88,12 @@ const verifyEmailConfigs = async () => {
 
   if (hasSupportCredentials) {
     try {
-      await supportTransporter.verify();
-      console.log('✅ Support email configuration verified');
+      const transporter = getSupportTransporter();
+      await transporter.verify();
+      console.log('✅ Support email configuration verified (Zoho SMTP port 587 - TLS)');
     } catch (error: any) {
-      console.warn('⚠️  Support email configuration failed:', error.code === 'EAUTH' ? 'Authentication failed - check SMTP credentials' : error.message);
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('   Email functionality will be disabled until credentials are configured correctly.');
-      }
+      console.warn('⚠️  Support email configuration failed:', error.message);
+      console.warn('   Will attempt to send emails anyway (non-blocking)');
     }
   } else {
     console.warn('⚠️  Support email credentials not configured. Set SMTP_USER_SUPPORT and SMTP_PASS_SUPPORT in .env');
@@ -376,7 +416,7 @@ const emailTemplates = {
 export const sendBookingConfirmation = async (bookingData: any, userEmail: string) => {
   try {
     // Check if email is configured
-    if (!process.env.SMTP_USER_BOOKING || !process.env.SMTP_PASS_BOOKING) {
+    if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
       console.warn('⚠️  Email not configured - skipping booking confirmation email');
       return { success: false, error: 'Email service not configured' };
     }
@@ -384,22 +424,18 @@ export const sendBookingConfirmation = async (bookingData: any, userEmail: strin
     const template = emailTemplates.bookingConfirmation(bookingData);
     
     const mailOptions = {
-      from: process.env.SMTP_USER_BOOKING || 'bookings@lezittransports.com',
+      from: process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com',
       to: userEmail,
       subject: template.subject,
       html: template.html
     };
 
-    const result = await bookingTransporter.sendMail(mailOptions);
-    console.log('✅ Booking confirmation email sent:', result.messageId);
+    const transporter = getBookingTransporter();
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ Booking confirmation email sent to:', userEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
-    // Log error but don't throw - email failures shouldn't break the flow
-    if (error.code === 'EAUTH') {
-      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
-    } else {
-      console.error('❌ Failed to send booking confirmation email:', error.message);
-    }
+    console.error('❌ Failed to send booking confirmation email:', error.message);
     return { success: false, error: error.message };
   }
 };
@@ -407,7 +443,7 @@ export const sendBookingConfirmation = async (bookingData: any, userEmail: strin
 export const sendBookingCancellation = async (bookingData: any, userEmail: string) => {
   try {
     // Check if email is configured
-    if (!process.env.SMTP_USER_BOOKING || !process.env.SMTP_PASS_BOOKING) {
+    if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
       console.warn('⚠️  Email not configured - skipping booking cancellation email');
       return { success: false, error: 'Email service not configured' };
     }
@@ -415,21 +451,18 @@ export const sendBookingCancellation = async (bookingData: any, userEmail: strin
     const template = emailTemplates.bookingCancellation(bookingData);
     
     const mailOptions = {
-      from: process.env.SMTP_USER_BOOKING || 'bookings@lezittransports.com',
+      from: process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com',
       to: userEmail,
       subject: template.subject,
       html: template.html
     };
 
-    const result = await bookingTransporter.sendMail(mailOptions);
-    console.log('✅ Booking cancellation email sent:', result.messageId);
+    const transporter = getBookingTransporter();
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ Booking cancellation email sent to:', userEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
-    if (error.code === 'EAUTH') {
-      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
-    } else {
-      console.error('❌ Failed to send booking cancellation email:', error.message);
-    }
+    console.error('❌ Failed to send booking cancellation email:', error.message);
     return { success: false, error: error.message };
   }
 };
@@ -437,7 +470,7 @@ export const sendBookingCancellation = async (bookingData: any, userEmail: strin
 export const sendContactForm = async (contactData: any) => {
   try {
     // Check if email is configured
-    if (!process.env.SMTP_USER_SUPPORT || !process.env.SMTP_PASS_SUPPORT) {
+    if (!process.env.SMTP_USER_SUPPORT && !process.env.SENDGRID_API_KEY) {
       console.warn('⚠️  Email not configured - skipping contact form email');
       return { success: false, error: 'Email service not configured' };
     }
@@ -445,21 +478,18 @@ export const sendContactForm = async (contactData: any) => {
     const template = emailTemplates.contactForm(contactData);
     
     const mailOptions = {
-      from: process.env.SMTP_USER_SUPPORT || 'support@lezittransports.com',
-      to: process.env.SMTP_USER_SUPPORT || 'support@lezittransports.com',
+      from: process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_FROM_EMAIL || 'support@lezittransports.com',
+      to: process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_TO_EMAIL || 'support@lezittransports.com',
       subject: template.subject,
       html: template.html
     };
 
-    const result = await supportTransporter.sendMail(mailOptions);
-    console.log('✅ Contact form email sent:', result.messageId);
+    const transporter = getSupportTransporter();
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ Contact form email sent to:', mailOptions.to);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
-    if (error.code === 'EAUTH') {
-      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
-    } else {
-      console.error('❌ Failed to send contact form email:', error.message);
-    }
+    console.error('❌ Failed to send contact form email:', error.message);
     return { success: false, error: error.message };
   }
 };
@@ -467,7 +497,7 @@ export const sendContactForm = async (contactData: any) => {
 export const sendQuotationEmail = async (quotationData: any, userEmail: string) => {
   try {
     // Check if email is configured
-    if (!process.env.SMTP_USER_BOOKING || !process.env.SMTP_PASS_BOOKING) {
+    if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
       console.warn('⚠️  Email not configured - skipping quotation email');
       return { success: false, error: 'Email service not configured' };
     }
@@ -475,21 +505,18 @@ export const sendQuotationEmail = async (quotationData: any, userEmail: string) 
     const template = emailTemplates.quotation(quotationData);
     
     const mailOptions = {
-      from: process.env.SMTP_USER_BOOKING || 'bookings@lezittransports.com',
+      from: process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com',
       to: userEmail,
       subject: template.subject,
       html: template.html
     };
 
-    const result = await bookingTransporter.sendMail(mailOptions);
-    console.log('✅ Quotation email sent:', result.messageId);
+    const transporter = getBookingTransporter();
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ Quotation email sent to:', userEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
-    if (error.code === 'EAUTH') {
-      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
-    } else {
-      console.error('❌ Failed to send quotation email:', error.message);
-    }
+    console.error('❌ Failed to send quotation email:', error.message);
     return { success: false, error: error.message };
   }
 };
@@ -497,7 +524,7 @@ export const sendQuotationEmail = async (quotationData: any, userEmail: string) 
 export const sendSupportRequest = async (supportData: any) => {
   try {
     // Check if email is configured
-    if (!process.env.SMTP_USER_SUPPORT || !process.env.SMTP_PASS_SUPPORT) {
+    if (!process.env.SMTP_USER_SUPPORT && !process.env.SENDGRID_API_KEY) {
       console.warn('⚠️  Email not configured - skipping support request email');
       return { success: false, error: 'Email service not configured' };
     }
@@ -505,21 +532,18 @@ export const sendSupportRequest = async (supportData: any) => {
     const template = emailTemplates.supportRequest(supportData);
     
     const mailOptions = {
-      from: process.env.SMTP_USER_SUPPORT || 'support@lezittransports.com',
-      to: process.env.SMTP_USER_SUPPORT || 'support@lezittransports.com',
+      from: process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_FROM_EMAIL || 'support@lezittransports.com',
+      to: process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_TO_EMAIL || 'support@lezittransports.com',
       subject: template.subject,
       html: template.html
     };
 
-    const result = await supportTransporter.sendMail(mailOptions);
-    console.log('✅ Support request email sent:', result.messageId);
+    const transporter = getSupportTransporter();
+    const result = await transporter.sendMail(mailOptions);
+    console.log('✅ Support request email sent to:', mailOptions.to);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
-    if (error.code === 'EAUTH') {
-      console.warn('⚠️  Email authentication failed - check SMTP credentials in .env');
-    } else {
-      console.error('❌ Failed to send support request email:', error.message);
-    }
+    console.error('❌ Failed to send support request email:', error.message);
     return { success: false, error: error.message };
   }
 };
@@ -527,10 +551,79 @@ export const sendSupportRequest = async (supportData: any) => {
 // Initialize email verification
 verifyEmailConfigs();
 
+/** Get current email config status (no secrets). For health/verification. */
+export const getEmailStatus = async (): Promise<{
+  service: 'sendgrid' | 'smtp';
+  configured: boolean;
+  fromEmail: string | null;
+  verified: boolean;
+  error?: string;
+}> => {
+  const fromEmail =
+    process.env.SENDGRID_FROM_EMAIL ||
+    process.env.SMTP_USER_BOOKING ||
+    null;
+  const configured =
+    EMAIL_SERVICE === 'sendgrid'
+      ? Boolean(process.env.SENDGRID_API_KEY)
+      : Boolean(process.env.SMTP_USER_BOOKING && process.env.SMTP_PASS_BOOKING);
+
+  if (!configured) {
+    return {
+      service: EMAIL_SERVICE,
+      configured: false,
+      fromEmail,
+      verified: false,
+      error: EMAIL_SERVICE === 'sendgrid'
+        ? 'SENDGRID_API_KEY not set'
+        : 'SMTP_USER_BOOKING / SMTP_PASS_BOOKING not set',
+    };
+  }
+
+  try {
+    const transporter = getBookingTransporter();
+    await transporter.verify();
+    return { service: EMAIL_SERVICE, configured: true, fromEmail, verified: true };
+  } catch (err: any) {
+    return {
+      service: EMAIL_SERVICE,
+      configured: true,
+      fromEmail,
+      verified: false,
+      error: err?.message || String(err),
+    };
+  }
+};
+
+/** Send a simple test email (for verifying SendGrid/SMTP). */
+export const sendTestEmail = async (to: string): Promise<{ success: boolean; error?: string }> => {
+  if (!process.env.SMTP_USER_BOOKING && !process.env.SENDGRID_API_KEY) {
+    return { success: false, error: 'Email service not configured' };
+  }
+  const from =
+    process.env.SMTP_USER_BOOKING ||
+    process.env.SENDGRID_FROM_EMAIL ||
+    'bookings@lezittransports.com';
+  try {
+    const transporter = getBookingTransporter();
+    await transporter.sendMail({
+      from,
+      to,
+      subject: 'LEZIT Transports – Email test',
+      html: '<p>This is a test email from LEZIT Transports. SendGrid/email is working.</p>',
+    });
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || String(err) };
+  }
+};
+
 export default {
   sendBookingConfirmation,
   sendBookingCancellation,
   sendQuotationEmail,
   sendContactForm,
-  sendSupportRequest
+  sendSupportRequest,
+  getEmailStatus,
+  sendTestEmail,
 }; 

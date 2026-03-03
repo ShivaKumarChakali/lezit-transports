@@ -206,8 +206,12 @@ REACT_APP_API_URL=http://localhost:5000/api
 
 ### Backend Deployment (Railway/Render)
 1. Connect your GitHub repository
-2. Set environment variables
+2. Set environment variables (including email credentials - see below)
 3. Deploy automatically
+
+**Important - Email Configuration for Render:**
+Render blocks SMTP port 465. We've migrated to port 587 (TLS) for Zoho Mail or SendGrid.
+See [RENDER_EMAIL_SETUP.md](./RENDER_EMAIL_SETUP.md) for complete configuration instructions.
 
 ### Frontend Deployment (Vercel)
 1. Connect your GitHub repository
@@ -219,6 +223,13 @@ REACT_APP_API_URL=http://localhost:5000/api
 2. Configure network access
 3. Create database user
 4. Update connection string
+
+### Email Service Setup
+Choose one:
+- **Zoho Mail** (recommended - uses existing emails): Add 4 env vars
+- **SendGrid** (alternative): Add 3 env vars
+
+Details: See [RENDER_EMAIL_SETUP.md](./RENDER_EMAIL_SETUP.md)
 
 ## 🧪 Testing
 
