@@ -43,15 +43,21 @@ const sendViaSendGrid = async (
   to: string,
   from: string,
   subject: string,
-  html: string
+  html: string,
+  bcc?: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> => {
   const key = process.env.SENDGRID_API_KEY;
   if (!key) return { success: false, error: 'SENDGRID_API_KEY not set' };
   try {
+    const personalization: any = { to: [{ email: to }] };
+    if (bcc) {
+      personalization.bcc = [{ email: bcc }];
+    }
+
     const res = await axios.post(
       'https://api.sendgrid.com/v3/mail/send',
       {
-        personalizations: [{ to: [{ email: to }] }],
+        personalizations: [personalization],
         from: { email: from, name: 'LEZIT Transports' },
         subject,
         content: [{ type: 'text/html', value: html }],
@@ -436,16 +442,25 @@ export const sendBookingConfirmation = async (bookingData: any, userEmail: strin
   }
   const template = emailTemplates.bookingConfirmation(bookingData);
   const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
+   const bcc =
+    process.env.EMAIL_BCC_BOOKINGS ||
+    process.env.SMTP_USER_BOOKING ||
+    process.env.SENDGRID_FROM_EMAIL ||
+    'bookings@lezittransports.com';
 
   if (useSendGrid()) {
-    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html);
+    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html, bcc);
     if (result.success) console.log('✅ Booking confirmation email sent to:', userEmail);
     else console.error('❌ Failed to send booking confirmation email:', result.error);
     return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
   }
   try {
     const result = await getBookingTransporter().sendMail({
-      from, to: userEmail, subject: template.subject, html: template.html,
+      from,
+      to: userEmail,
+      subject: template.subject,
+      html: template.html,
+      bcc,
     });
     console.log('✅ Booking confirmation email sent to:', userEmail);
     return { success: true, messageId: result.messageId };
@@ -462,16 +477,25 @@ export const sendBookingCancellation = async (bookingData: any, userEmail: strin
   }
   const template = emailTemplates.bookingCancellation(bookingData);
   const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
+  const bcc =
+    process.env.EMAIL_BCC_BOOKINGS ||
+    process.env.SMTP_USER_BOOKING ||
+    process.env.SENDGRID_FROM_EMAIL ||
+    'bookings@lezittransports.com';
 
   if (useSendGrid()) {
-    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html);
+    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html, bcc);
     if (result.success) console.log('✅ Booking cancellation email sent to:', userEmail);
     else console.error('❌ Failed to send booking cancellation email:', result.error);
     return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
   }
   try {
     const result = await getBookingTransporter().sendMail({
-      from, to: userEmail, subject: template.subject, html: template.html,
+      from,
+      to: userEmail,
+      subject: template.subject,
+      html: template.html,
+      bcc,
     });
     console.log('✅ Booking cancellation email sent to:', userEmail);
     return { success: true, messageId: result.messageId };
@@ -489,16 +513,21 @@ export const sendContactForm = async (contactData: any) => {
   const template = emailTemplates.contactForm(contactData);
   const from = process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_FROM_EMAIL || 'support@lezittransports.com';
   const to = process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_TO_EMAIL || 'support@lezittransports.com';
+  const bcc = process.env.EMAIL_BCC_SUPPORT || undefined;
 
   if (useSendGrid()) {
-    const result = await sendViaSendGrid(to, from, template.subject, template.html);
+    const result = await sendViaSendGrid(to, from, template.subject, template.html, bcc);
     if (result.success) console.log('✅ Contact form email sent to:', to);
     else console.error('❌ Failed to send contact form email:', result.error);
     return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
   }
   try {
     const result = await getSupportTransporter().sendMail({
-      from, to, subject: template.subject, html: template.html,
+      from,
+      to,
+      subject: template.subject,
+      html: template.html,
+      ...(bcc ? { bcc } : {}),
     });
     console.log('✅ Contact form email sent to:', to);
     return { success: true, messageId: result.messageId };
@@ -515,16 +544,25 @@ export const sendQuotationEmail = async (quotationData: any, userEmail: string) 
   }
   const template = emailTemplates.quotation(quotationData);
   const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
+  const bcc =
+    process.env.EMAIL_BCC_BOOKINGS ||
+    process.env.SMTP_USER_BOOKING ||
+    process.env.SENDGRID_FROM_EMAIL ||
+    'bookings@lezittransports.com';
 
   if (useSendGrid()) {
-    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html);
+    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html, bcc);
     if (result.success) console.log('✅ Quotation email sent to:', userEmail);
     else console.error('❌ Failed to send quotation email:', result.error);
     return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
   }
   try {
     const result = await getBookingTransporter().sendMail({
-      from, to: userEmail, subject: template.subject, html: template.html,
+      from,
+      to: userEmail,
+      subject: template.subject,
+      html: template.html,
+      bcc,
     });
     console.log('✅ Quotation email sent to:', userEmail);
     return { success: true, messageId: result.messageId };
@@ -542,16 +580,21 @@ export const sendSupportRequest = async (supportData: any) => {
   const template = emailTemplates.supportRequest(supportData);
   const from = process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_FROM_EMAIL || 'support@lezittransports.com';
   const to = process.env.SMTP_USER_SUPPORT || process.env.SENDGRID_TO_EMAIL || 'support@lezittransports.com';
+  const bcc = process.env.EMAIL_BCC_SUPPORT || undefined;
 
   if (useSendGrid()) {
-    const result = await sendViaSendGrid(to, from, template.subject, template.html);
+    const result = await sendViaSendGrid(to, from, template.subject, template.html, bcc);
     if (result.success) console.log('✅ Support request email sent to:', to);
     else console.error('❌ Failed to send support request email:', result.error);
     return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
   }
   try {
     const result = await getSupportTransporter().sendMail({
-      from, to, subject: template.subject, html: template.html,
+      from,
+      to,
+      subject: template.subject,
+      html: template.html,
+      ...(bcc ? { bcc } : {}),
     });
     console.log('✅ Support request email sent to:', to);
     return { success: true, messageId: result.messageId };
