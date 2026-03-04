@@ -40,7 +40,7 @@ const getSupportTransporter = (): Transporter<any> => zohoSupportTransporter;
 
 /** Send email via SendGrid Web API (HTTPS). Use this on Render – SMTP is often blocked. */
 const sendViaSendGrid = async (
-  to: string,
+  to: string | string[],
   from: string,
   subject: string,
   html: string,
@@ -49,7 +49,8 @@ const sendViaSendGrid = async (
   const key = process.env.SENDGRID_API_KEY;
   if (!key) return { success: false, error: 'SENDGRID_API_KEY not set' };
   try {
-    const personalization: any = { to: [{ email: to }] };
+    const toArray = Array.isArray(to) ? to : [to];
+    const personalization: any = { to: toArray.map(email => ({ email })) };
     if (bcc) {
       personalization.bcc = [{ email: bcc }];
     }
@@ -442,13 +443,14 @@ export const sendBookingConfirmation = async (bookingData: any, userEmail: strin
   }
   const template = emailTemplates.bookingConfirmation(bookingData);
   const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
-  // Always BCC bookings email for tracking
-  const bcc = process.env.EMAIL_BCC_BOOKINGS || process.env.BOOKINGS_TRACK_EMAIL || 'bookings@lezittransports.com';
+  // Always send to bookings email for tracking (as direct recipient, not BCC)
+  const trackingEmail = process.env.EMAIL_BCC_BOOKINGS || process.env.BOOKINGS_TRACK_EMAIL || 'bookings@lezittransports.com';
+  const recipients = [userEmail, trackingEmail];
 
   if (useSendGrid()) {
-    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html, bcc);
+    const result = await sendViaSendGrid(recipients, from, template.subject, template.html);
     if (result.success) {
-      console.log('✅ Booking confirmation email sent to:', userEmail, '(BCC:', bcc + ')');
+      console.log('✅ Booking confirmation email sent to:', userEmail, 'and', trackingEmail);
     } else {
       console.error('❌ Failed to send booking confirmation email:', result.error);
     }
@@ -457,12 +459,11 @@ export const sendBookingConfirmation = async (bookingData: any, userEmail: strin
   try {
     const result = await getBookingTransporter().sendMail({
       from,
-      to: userEmail,
+      to: recipients.join(', '),
       subject: template.subject,
       html: template.html,
-      bcc,
     });
-    console.log('✅ Booking confirmation email sent to:', userEmail, '(BCC:', bcc + ')');
+    console.log('✅ Booking confirmation email sent to:', userEmail, 'and', trackingEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
     console.error('❌ Failed to send booking confirmation email:', error.message);
@@ -477,13 +478,14 @@ export const sendBookingCancellation = async (bookingData: any, userEmail: strin
   }
   const template = emailTemplates.bookingCancellation(bookingData);
   const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
-  // Always BCC bookings email for tracking
-  const bcc = process.env.EMAIL_BCC_BOOKINGS || process.env.BOOKINGS_TRACK_EMAIL || 'bookings@lezittransports.com';
+  // Always send to bookings email for tracking (as direct recipient, not BCC)
+  const trackingEmail = process.env.EMAIL_BCC_BOOKINGS || process.env.BOOKINGS_TRACK_EMAIL || 'bookings@lezittransports.com';
+  const recipients = [userEmail, trackingEmail];
 
   if (useSendGrid()) {
-    const result = await sendViaSendGrid(userEmail, from, template.subject, template.html, bcc);
+    const result = await sendViaSendGrid(recipients, from, template.subject, template.html);
     if (result.success) {
-      console.log('✅ Booking cancellation email sent to:', userEmail, '(BCC:', bcc + ')');
+      console.log('✅ Booking cancellation email sent to:', userEmail, 'and', trackingEmail);
     } else {
       console.error('❌ Failed to send booking cancellation email:', result.error);
     }
@@ -492,12 +494,11 @@ export const sendBookingCancellation = async (bookingData: any, userEmail: strin
   try {
     const result = await getBookingTransporter().sendMail({
       from,
-      to: userEmail,
+      to: recipients.join(', '),
       subject: template.subject,
       html: template.html,
-      bcc,
     });
-    console.log('✅ Booking cancellation email sent to:', userEmail, '(BCC:', bcc + ')');
+    console.log('✅ Booking cancellation email sent to:', userEmail, 'and', trackingEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
     console.error('❌ Failed to send booking cancellation email:', error.message);
