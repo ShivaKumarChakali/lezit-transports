@@ -45,6 +45,11 @@ const allowedOrigins = [
   /^https:\/\/.*\.onrender\.com$/,
   // Allow deployed frontend
   'https://lezit-transports-frontend.onrender.com',
+  // Allow custom domain
+  'https://www.lezittransports.com',
+  'https://lezittransports.com',
+  'http://www.lezittransports.com',
+  'http://lezittransports.com',
   // Allow Capacitor mobile app origins (for development)
   'capacitor://localhost',
   'ionic://localhost',
