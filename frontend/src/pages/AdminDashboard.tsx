@@ -629,7 +629,6 @@ const AdminDashboard: React.FC = () => {
                           <th className="text-left py-3 px-4 font-medium text-muted">Route</th>
                           <th className="text-left py-3 px-4 font-medium text-muted">Date</th>
                           <th className="text-left py-3 px-4 font-medium text-muted">Amount</th>
-                          <th className="text-left py-3 px-4 font-medium text-muted">Booking Status</th>
                           <th className="text-left py-3 px-4 font-medium text-muted">Workflow Status</th>
                           <th className="text-left py-3 px-4 font-medium text-muted">Update Workflow</th>
                         </tr>
@@ -642,7 +641,7 @@ const AdminDashboard: React.FC = () => {
                             animate={{ opacity: 1 }}
                             className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
                           >
-                            <td className="py-3 px-4">{booking.user?.name || 'N/A'}</td>
+                            <td className="py-3 px-4">{(booking as any).userId?.name || booking.user?.name || 'N/A'}</td>
                             <td className="py-3 px-4">{booking.serviceCategory}</td>
                             <td className="py-3 px-4 text-muted text-xs">
                               {booking.pickupLocation} → {booking.dropLocation}
@@ -651,9 +650,6 @@ const AdminDashboard: React.FC = () => {
                               {new Date(booking.pickupDate).toLocaleDateString()}
                             </td>
                             <td className="py-3 px-4 font-medium">₹{booking.totalAmount}</td>
-                            <td className="py-3 px-4">
-                              <StatusBadge status={booking.status as any} />
-                            </td>
                             <td className="py-3 px-4">
                               <StatusBadge
                                 status="default"

@@ -124,7 +124,11 @@ export interface AdminUser {
 
 export interface AdminBooking {
   _id: string;
-  userId: string;
+  userId: string | {
+    _id: string;
+    name: string;
+    email: string;
+  };
   orderId?: string;
   serviceType: string;
   serviceCategory: string;
