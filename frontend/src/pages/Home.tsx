@@ -49,21 +49,23 @@ const Home: React.FC = () => {
           <div className="row align-items-center hero-content">
             <div className="col-lg-6">
               <div className="hero-logo mb-4">
-                <img 
-                  src="/lezit-logo-removebg-preview.png" 
-                  alt="LEZIT TRANSPORTS" 
-                  className="hero-logo-img"
-                  style={{ 
-                    height: '120px', 
-                    width: 'auto',
-                    filter: 'drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4))',
-                    transition: 'transform 0.3s ease'
-                  }}
-                  onError={(e) => {
-                    console.error('Logo failed to load');
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
+                <div className="hero-logo-frame">
+                  <img 
+                    src="/lezit-logo-removebg-preview.png" 
+                    alt="LEZIT TRANSPORTS" 
+                    className="hero-logo-img"
+                    style={{ 
+                      height: '120px', 
+                      width: 'auto',
+                      filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.22))',
+                      transition: 'transform 0.3s ease'
+                    }}
+                    onError={(e) => {
+                      console.error('Logo failed to load');
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
               </div>
               {/* <h1 className="display-3 fw-bold mb-3 hero-title text-white">
                 LEZIT TRANSPORTS

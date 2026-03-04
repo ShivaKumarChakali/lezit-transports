@@ -58,11 +58,6 @@ const Login: React.FC = () => {
             {/* Header */}
             <div className="login-header">
               <div className="logo-section">
-                <img 
-                  src="/lezit-logo-removebg-preview.png" 
-                  alt="LEZIT TRANSPORTS" 
-                  className="login-logo"
-                />
                 <h1 className="login-title">Welcome Back</h1>
                 <p className="login-subtitle">Sign in to continue your journey</p>
               </div>

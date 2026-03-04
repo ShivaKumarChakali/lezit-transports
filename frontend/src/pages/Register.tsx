@@ -66,11 +66,6 @@ const Register: React.FC = () => {
             {/* Header */}
             <div className="register-header">
               <div className="logo-section">
-                <img 
-                  src="/lezit-logo-removebg-preview.png" 
-                  alt="LEZIT TRANSPORTS" 
-                  className="register-logo"
-                />
                 <h1 className="register-title">Join LEZIT TRANSPORTS</h1>
                 <p className="register-subtitle">Create your account and start your journey</p>
               </div>

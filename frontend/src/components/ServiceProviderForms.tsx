@@ -21,8 +21,8 @@ const ServiceProviderForms: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'provider' | 'vehicle' | 'driver'>('provider');
 
   return (
-    <div>
-      <ul className="nav nav-tabs mb-3">
+    <div className="partner-forms-shell">
+      <ul className="nav nav-tabs mb-4 partner-tabs">
         <li className="nav-item">
           <button className={`nav-link ${activeTab === 'provider' ? 'active' : ''}`} onClick={() => setActiveTab('provider')}>Service Provider</button>
         </li>
@@ -120,7 +120,7 @@ const ProviderForm: React.FC = () => {
         </select>
       </div>
 
-      <button className="btn btn-primary" type="submit">Submit Request</button>
+      <button className="btn btn-primary partner-submit-btn" type="submit">Submit Request</button>
     </form>
   );
 };
@@ -202,7 +202,7 @@ const VehicleOwnerForm: React.FC = () => {
         </select>
       </div>
 
-      <button className="btn btn-primary" type="submit">Submit Request</button>
+      <button className="btn btn-primary partner-submit-btn" type="submit">Submit Request</button>
     </form>
   );
 };
@@ -305,7 +305,7 @@ const DriverForm: React.FC = () => {
         </select>
       </div>
 
-      <button className="btn btn-primary" type="submit">Submit Request</button>
+      <button className="btn btn-primary partner-submit-btn" type="submit">Submit Request</button>
     </form>
   );
 };
