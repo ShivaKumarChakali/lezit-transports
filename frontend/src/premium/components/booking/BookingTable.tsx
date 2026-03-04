@@ -54,7 +54,7 @@ export const BookingTable: React.FC<BookingTableProps> = ({ bookings, onCancelBo
         header: 'Payment',
         render: (row: Booking) => (
           <div>
-            <p className="font-semibold text-foreground">₹{row.totalAmount.toLocaleString()}</p>
+            <p className="font-semibold text-foreground">₹{(row.totalAmount || 0).toLocaleString()}</p>
             <StatusBadge status={row.paymentStatus === 'pending' ? 'pending' : row.paymentStatus} />
           </div>
         )

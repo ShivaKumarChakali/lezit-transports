@@ -96,7 +96,7 @@ const AdminPanelPage: React.FC = () => {
       {
         key: 'amount',
         header: 'Amount',
-        render: (row: AdminBooking) => <p className="font-semibold text-foreground">₹{row.totalAmount.toLocaleString()}</p>
+        render: (row: AdminBooking) => <p className="font-semibold text-foreground">₹{(row.totalAmount || 0).toLocaleString()}</p>
       },
       {
         key: 'status',

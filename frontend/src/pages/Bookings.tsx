@@ -181,7 +181,7 @@ const Bookings: React.FC = () => {
             <p><span className="text-muted-foreground">Service:</span> {selectedBooking.serviceCategory}</p>
             <p><span className="text-muted-foreground">Route:</span> {selectedBooking.pickupLocation} → {selectedBooking.dropLocation}</p>
             <p><span className="text-muted-foreground">Schedule:</span> {new Date(selectedBooking.pickupDate).toLocaleDateString()} {selectedBooking.pickupTime}</p>
-            <p><span className="text-muted-foreground">Amount:</span> ₹{selectedBooking.totalAmount.toLocaleString()}</p>
+            <p><span className="text-muted-foreground">Amount:</span> ₹{(selectedBooking.totalAmount || 0).toLocaleString()}</p>
             <p><span className="text-muted-foreground">Status:</span> {selectedBooking.status}</p>
           </div>
         ) : null}
