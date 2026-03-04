@@ -43,7 +43,7 @@ const schema = yup.object({
 }).required();
 
 const NewBooking: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [services, setServices] = useState<Service[]>([]);
@@ -111,6 +111,13 @@ const NewBooking: React.FC = () => {
   };
 
   const onSubmit = async (data: any) => {
+    // Check if user is authenticated before allowing booking
+    if (!isAuthenticated) {
+      toast.info('Please login to complete your booking');
+      navigate('/login?redirect=/bookings/new');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const bookingData = {

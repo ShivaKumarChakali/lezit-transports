@@ -9,7 +9,6 @@ import Layout from './components/Layout/Layout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Services from './pages/Services';
 import Bookings from './pages/Bookings';
 import NewBooking from './pages/NewBooking';
 import Contact from './pages/Contact';
@@ -153,7 +152,7 @@ const App: React.FC = () => {
                 <Route path="/vendor-register" element={<VendorRegister />} />
                 <Route path="/driver-register" element={<DriverRegister />} />
                 <Route path="/oauth-callback" element={<OAuthCallback />} />
-                <Route path="/services" element={<Services />} />
+                <Route path="/services" element={<Navigate to="/bookings/new" replace />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route 
                   path="/bookings" 
@@ -163,14 +162,7 @@ const App: React.FC = () => {
                     </ProtectedRoute>
                   } 
                 />
-                <Route 
-                  path="/bookings/new" 
-                  element={
-                    <ProtectedRoute>
-                      <NewBooking />
-                    </ProtectedRoute>
-                  } 
-                />
+                <Route path="/bookings/new" element={<NewBooking />} />
                 <Route 
                   path="/profile" 
                   element={

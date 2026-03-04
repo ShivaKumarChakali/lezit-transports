@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,6 +16,7 @@ type LoginFormData = yup.InferType<typeof schema>;
 const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   
   const {
@@ -30,7 +31,8 @@ const Login: React.FC = () => {
     try {
       await login(data.email, data.password);
       toast.success('Login successful!');
-      navigate('/');
+      const redirectTo = searchParams.get('redirect') || '/';
+      navigate(redirectTo);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       toast.error(errorMessage);
