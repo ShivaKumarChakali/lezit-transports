@@ -1,6 +1,52 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 220 33% 99%;
+  --foreground: 222 29% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 29% 12%;
+  --muted: 220 24% 95%;
+  --muted-foreground: 220 12% 42%;
+  --border: 220 18% 90%;
+  --input: 220 18% 90%;
+  --ring: 221 83% 53%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
+  --success: 151 55% 40%;
+  --success-foreground: 0 0% 100%;
+  --warning: 35 95% 48%;
+  --warning-foreground: 25 90% 15%;
+  --danger: 0 84% 60%;
+  --danger-foreground: 0 0% 100%;
+  --shadow: 221 39% 22%;
+}
+
+.dark {
+  --background: 225 24% 10%;
+  --foreground: 210 20% 96%;
+  --card: 224 22% 14%;
+  --card-foreground: 210 20% 96%;
+  --muted: 223 20% 19%;
+  --muted-foreground: 215 12% 70%;
+  --border: 223 14% 24%;
+  --input: 223 14% 24%;
+  --ring: 221 83% 63%;
+  --primary: 221 83% 63%;
+  --primary-foreground: 0 0% 100%;
+  --success: 151 53% 50%;
+  --success-foreground: 0 0% 100%;
+  --warning: 35 95% 56%;
+  --warning-foreground: 20 88% 12%;
+  --danger: 0 84% 66%;
+  --danger-foreground: 0 0% 100%;
+  --shadow: 220 26% 5%;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -9,6 +55,8 @@ body {
   font-family: 'Inter', sans-serif;
   margin: 0;
   padding: 0;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
 /* Custom Color Palette */

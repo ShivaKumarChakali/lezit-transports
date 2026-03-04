@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { CalendarClock, CheckCircle2, IndianRupee, XCircle } from 'lucide-react';
 import apiService from '../services/api';
 import { Booking } from '../types';
 import { toast } from 'react-toastify';
+import { BookingTable } from '../premium/components/booking/BookingTable';
+import { Card, CardDescription, CardHeader, CardTitle } from '../premium/components/ui/Card';
+import { EmptyState } from '../premium/components/ui/EmptyState';
+import { Modal } from '../premium/components/ui/Modal';
+import { Skeleton } from '../premium/components/ui/Skeleton';
+import { StatsCard } from '../premium/components/ui/StatsCard';
 
 const Bookings: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming');
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     fetchBookings();
@@ -42,19 +51,6 @@ const Bookings: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'pending': { class: 'bg-warning', text: 'Pending' },
-      'confirmed': { class: 'bg-success', text: 'Confirmed' },
-      'in-progress': { class: 'bg-info', text: 'In Progress' },
-      'completed': { class: 'bg-secondary', text: 'Completed' },
-      'cancelled': { class: 'bg-danger', text: 'Cancelled' }
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || { class: 'bg-secondary', text: status };
-    return <span className={`badge ${config.class}`}>{config.text}</span>;
-  };
-
   const filteredBookings = bookings.filter(booking => {
     if (activeTab === 'upcoming') {
       return ['pending', 'confirmed', 'in-progress'].includes(booking.status);
@@ -68,226 +64,129 @@ const Bookings: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
+      <div className="space-y-3 p-4 md:p-6">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-40 w-full" />
       </div>
     );
   }
 
   return (
-    <div className="container py-5">
-      {/* Header */}
-      <div className="row mb-5">
-        <div className="col-md-8">
-          <h1 className="display-5 fw-bold text-primary mb-2">My Bookings</h1>
-          <p className="lead text-muted">
-            Manage your transportation bookings and track their status
-          </p>
-        </div>
-        <div className="col-md-4 text-md-end">
-          <Link to="/bookings/new" className="btn btn-primary">
-            <i 
-              className="fas fa-plus me-2"
-              style={{
-                display: 'inline-block !important',
-                fontFamily: '"Font Awesome 5 Free", "FontAwesome", sans-serif !important',
-                fontWeight: '900 !important'
-              }}
-            ></i>
+    <motion.section initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="p-4 md:p-6">
+      <Card className="mb-5">
+        <CardHeader>
+          <div>
+            <CardTitle className="text-xl md:text-2xl">My Bookings</CardTitle>
+            <CardDescription>Track active, completed, and cancelled trips from one premium workspace.</CardDescription>
+          </div>
+          <Link
+            to="/bookings/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+          >
             New Booking
           </Link>
-        </div>
+        </CardHeader>
+      </Card>
+
+      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatsCard
+          label="Upcoming"
+          value={bookings.filter((booking) => ['pending', 'confirmed', 'in-progress'].includes(booking.status)).length.toString()}
+          icon={CalendarClock}
+        />
+        <StatsCard
+          label="Completed"
+          value={bookings.filter((booking) => booking.status === 'completed').length.toString()}
+          icon={CheckCircle2}
+        />
+        <StatsCard
+          label="Cancelled"
+          value={bookings.filter((booking) => booking.status === 'cancelled').length.toString()}
+          icon={XCircle}
+        />
+        <StatsCard
+          label="Total Spent"
+          value={`₹${bookings.reduce((sum, booking) => sum + (booking.totalAmount || 0), 0).toLocaleString()}`}
+          icon={IndianRupee}
+        />
       </div>
 
-      {/* Stats Cards */}
-      <div className="row mb-4">
-        <div className="col-md-3 mb-3">
-          <div className="card border-0 bg-primary text-white">
-            <div className="card-body text-center">
-              <i 
-                className="fas fa-clock fa-2x mb-2" 
-                style={{
-                  display: 'inline-block !important',
-                  fontFamily: '"Font Awesome 5 Free", "FontAwesome", sans-serif !important',
-                  fontWeight: '900 !important'
-                }}
-              ></i>
-              <h4>{bookings.filter(b => ['pending', 'confirmed', 'in-progress'].includes(b.status)).length}</h4>
-              <p className="mb-0">Upcoming</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3 mb-3">
-          <div className="card border-0 bg-success text-white">
-            <div className="card-body text-center">
-              <i 
-                className="fas fa-check-circle fa-2x mb-2"
-                style={{
-                  display: 'inline-block !important',
-                  fontFamily: '"Font Awesome 5 Free", "FontAwesome", sans-serif !important',
-                  fontWeight: '900 !important'
-                }}
-              ></i>
-              <h4>{bookings.filter(b => b.status === 'completed').length}</h4>
-              <p className="mb-0">Completed</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3 mb-3">
-          <div className="card border-0 bg-danger text-white">
-            <div className="card-body text-center">
-              <i 
-                className="fas fa-times-circle fa-2x mb-2"
-                style={{
-                  display: 'inline-block !important',
-                  fontFamily: '"Font Awesome 5 Free", "FontAwesome", sans-serif !important',
-                  fontWeight: '900 !important'
-                }}
-              ></i>
-              <h4>{bookings.filter(b => b.status === 'cancelled').length}</h4>
-              <p className="mb-0">Cancelled</p>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-3 mb-3">
-          <div className="card border-0 bg-info text-white">
-            <div className="card-body text-center">
-              <i 
-                className="fas fa-rupee-sign fa-2x mb-2"
-                style={{
-                  display: 'inline-block !important',
-                  fontFamily: '"Font Awesome 5 Free", "FontAwesome", sans-serif !important',
-                  fontWeight: '900 !important'
-                }}
-              ></i>
-              <h4>₹{bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0).toLocaleString()}</h4>
-              <p className="mb-0">Total Spent</p>
-            </div>
-          </div>
-        </div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <button
+          onClick={() => setActiveTab('upcoming')}
+          className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+            activeTab === 'upcoming' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Upcoming
+        </button>
+        <button
+          onClick={() => setActiveTab('past')}
+          className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+            activeTab === 'past' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Past
+        </button>
+        <button
+          onClick={() => setActiveTab('cancelled')}
+          className={`rounded-xl px-3 py-1.5 text-sm font-medium transition ${
+            activeTab === 'cancelled' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Cancelled
+        </button>
       </div>
 
-      {/* Tabs */}
-      <ul className="nav nav-tabs mb-4" id="bookingTabs" role="tablist">
-        <li className="nav-item" role="presentation">
-          <button
-            className={`nav-link ${activeTab === 'upcoming' ? 'active' : ''}`}
-            onClick={() => setActiveTab('upcoming')}
-          >
-            <i className="fas fa-clock me-2"></i>
-            Upcoming
-          </button>
-        </li>
-        <li className="nav-item" role="presentation">
-          <button
-            className={`nav-link ${activeTab === 'past' ? 'active' : ''}`}
-            onClick={() => setActiveTab('past')}
-          >
-            <i className="fas fa-history me-2"></i>
-            Past
-          </button>
-        </li>
-        <li className="nav-item" role="presentation">
-          <button
-            className={`nav-link ${activeTab === 'cancelled' ? 'active' : ''}`}
-            onClick={() => setActiveTab('cancelled')}
-          >
-            <i className="fas fa-times me-2"></i>
-            Cancelled
-          </button>
-        </li>
-      </ul>
-
-      {/* Bookings List */}
       {filteredBookings.length === 0 ? (
-        <div className="text-center py-5">
-                      <i 
-              className="fas fa-calendar-times fa-3x text-muted mb-3"
-              style={{
-                display: 'inline-block !important',
-                fontFamily: '"Font Awesome 5 Free", "FontAwesome", sans-serif !important',
-                fontWeight: '900 !important'
-              }}
-            ></i>
-          <h4 className="text-muted">No {activeTab} bookings</h4>
-          <p className="text-muted">
-            {activeTab === 'upcoming' 
-              ? "You don't have any upcoming bookings. Start by booking a service!"
+        <EmptyState
+          title={`No ${activeTab} bookings`}
+          description={
+            activeTab === 'upcoming'
+              ? "You don't have any upcoming bookings yet."
               : `You don't have any ${activeTab} bookings.`
-            }
-          </p>
-          {activeTab === 'upcoming' && (
-            <Link to="/bookings/new" className="btn btn-primary">
-              <i 
-                className="fas fa-plus me-2"
-                style={{
-                  display: 'inline-block !important',
-                  fontFamily: '"Font Awesome 5 Free", "FontAwesome", sans-serif !important',
-                  fontWeight: '900 !important'
-                }}
-              ></i>
-              Book a Service
-            </Link>
-          )}
-        </div>
+          }
+          action={
+            activeTab === 'upcoming' ? (
+              <Link
+                to="/bookings/new"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+              >
+                Create Booking
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
-        <div className="row">
-          {filteredBookings.map((booking) => (
-            <div key={booking._id} className="col-12 mb-4">
-              <div className="card shadow-sm border-0">
-                <div className="card-body">
-                  <div className="row align-items-center">
-                    <div className="col-md-3">
-                      <h6 className="text-muted mb-1">Service</h6>
-                      <h5 className="mb-0">{booking.serviceType}</h5>
-                      <small className="text-muted">{booking.serviceCategory}</small>
-                    </div>
-                    <div className="col-md-2">
-                      <h6 className="text-muted mb-1">Date</h6>
-                      <p className="mb-0">{new Date(booking.pickupDate).toLocaleDateString()}</p>
-                      <small className="text-muted">{booking.pickupTime}</small>
-                    </div>
-                    <div className="col-md-3">
-                      <h6 className="text-muted mb-1">Route</h6>
-                      <p className="mb-0">
-                        <i className="fas fa-map-marker-alt text-success me-1"></i>
-                        {booking.pickupLocation}
-                      </p>
-                      <small className="text-muted">
-                        <i className="fas fa-arrow-down me-1"></i>
-                        {booking.dropLocation}
-                      </small>
-                    </div>
-                    <div className="col-md-2">
-                      <h6 className="text-muted mb-1">Amount</h6>
-                      <h5 className="text-primary mb-0">₹{booking.totalAmount}</h5>
-                      {getStatusBadge(booking.status)}
-                    </div>
-                    <div className="col-md-2 text-end">
-                      {['pending', 'confirmed'].includes(booking.status) && (
-                        <button
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => handleCancelBooking(booking._id)}
-                        >
-                          <i className="fas fa-times me-1"></i>
-                          Cancel
-                        </button>
-                      )}
-                      <button className="btn btn-outline-primary btn-sm ms-2">
-                        <i className="fas fa-eye me-1"></i>
-                        Details
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <BookingTable
+          bookings={filteredBookings}
+          onCancelBooking={handleCancelBooking}
+          onViewDetails={setSelectedBooking}
+        />
       )}
-    </div>
+
+      <Modal
+        open={Boolean(selectedBooking)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedBooking(null);
+          }
+        }}
+        title="Booking Details"
+        description="Quick operational summary"
+      >
+        {selectedBooking ? (
+          <div className="space-y-2 text-sm">
+            <p><span className="text-muted-foreground">Service:</span> {selectedBooking.serviceCategory}</p>
+            <p><span className="text-muted-foreground">Route:</span> {selectedBooking.pickupLocation} → {selectedBooking.dropLocation}</p>
+            <p><span className="text-muted-foreground">Schedule:</span> {new Date(selectedBooking.pickupDate).toLocaleDateString()} {selectedBooking.pickupTime}</p>
+            <p><span className="text-muted-foreground">Amount:</span> ₹{selectedBooking.totalAmount.toLocaleString()}</p>
+            <p><span className="text-muted-foreground">Status:</span> {selectedBooking.status}</p>
+          </div>
+        ) : null}
+      </Modal>
+    </motion.section>
   );
 };
 

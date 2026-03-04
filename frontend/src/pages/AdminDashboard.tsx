@@ -2,8 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { motion } from 'framer-motion';
+import { Shield, Users, Calendar, Cog } from 'lucide-react';
 import apiService from '../services/api';
 import { DashboardStats, AdminUser, AdminBooking, AdminService } from '../types';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../premium/components/ui/Card';
+import { StatsCard } from '../premium/components/ui/StatsCard';
+import { StatusBadge } from '../premium/components/ui/StatusBadge';
+import { Skeleton } from '../premium/components/ui/Skeleton';
+import { EmptyState } from '../premium/components/ui/EmptyState';
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -111,370 +118,407 @@ const AdminDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="container py-5">
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-3">Loading admin dashboard...</p>
+      <div className="w-full max-w-6xl mx-auto px-4 py-8">
+        <div className="space-y-6">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
         </div>
       </div>
     );
   }
 
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: Shield },
+    { id: 'users', label: 'Users', icon: Users },
+    { id: 'bookings', label: 'Bookings', icon: Calendar },
+    { id: 'services', label: 'Services', icon: Cog },
+  ];
+
   return (
-    <div className="container-fluid py-4 admin-dashboard">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="w-full max-w-7xl mx-auto px-4 py-8 space-y-6"
+    >
       {/* Header */}
-      <div className="row mb-4">
-        <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center">
-            <h1 className="h3 mb-0 text-gray-800">
-              <i className="fas fa-tachometer-alt me-2 text-primary"></i>
-              Admin Dashboard
-            </h1>
-            <div className="text-muted">
-              Welcome back, {user?.name}
-            </div>
-          </div>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+          <p className="text-muted mt-1">Welcome back, {user?.name}</p>
         </div>
+        <Shield className="w-8 h-8 text-primary opacity-60" />
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="row mb-4">
-        <div className="col-12">
-          <ul className="nav nav-tabs" id="adminTabs" role="tablist">
-            <li className="nav-item" role="presentation">
-              <button
-                className={`nav-link ${activeTab === 'overview' ? 'active' : ''}`}
-                onClick={() => setActiveTab('overview')}
-              >
-                <i className="fas fa-chart-bar me-2"></i>
-                Overview
-              </button>
-            </li>
-            <li className="nav-item" role="presentation">
-              <button
-                className={`nav-link ${activeTab === 'users' ? 'active' : ''}`}
-                onClick={() => setActiveTab('users')}
-              >
-                <i className="fas fa-users me-2"></i>
-                Users
-              </button>
-            </li>
-            <li className="nav-item" role="presentation">
-              <button
-                className={`nav-link ${activeTab === 'bookings' ? 'active' : ''}`}
-                onClick={() => setActiveTab('bookings')}
-              >
-                <i className="fas fa-calendar-check me-2"></i>
-                Bookings
-              </button>
-            </li>
-            <li className="nav-item" role="presentation">
-              <button
-                className={`nav-link ${activeTab === 'services' ? 'active' : ''}`}
-                onClick={() => setActiveTab('services')}
-              >
-                <i className="fas fa-cogs me-2"></i>
-                Services
-              </button>
-            </li>
-          </ul>
-        </div>
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-border">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <motion.button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              whileHover={{ y: -2 }}
+              className={`px-4 py-3 text-sm font-medium transition-colors flex items-center gap-2 border-b-2 ${
+                activeTab === tab.id
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted hover:text-foreground'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </motion.button>
+          );
+        })}
       </div>
+
 
       {/* Tab Content */}
-      <div className="tab-content" id="adminTabContent">
+      <div>
         {/* Overview Tab */}
         {activeTab === 'overview' && (
-          <div className="tab-pane fade show active">
-            <div className="row">
-              {/* Statistics Cards */}
-              <div className="col-xl-3 col-md-6 mb-4">
-                <div className="card border-left-primary shadow h-100 py-2">
-                  <div className="card-body">
-                    <div className="row no-gutters align-items-center">
-                      <div className="col mr-2">
-                        <div className="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                          Total Users
-                        </div>
-                        <div className="h5 mb-0 font-weight-bold text-gray-800">{stats.totalUsers}</div>
-                      </div>
-                      <div className="col-auto">
-                        <i className="fas fa-users fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-xl-3 col-md-6 mb-4">
-                <div className="card border-left-success shadow h-100 py-2">
-                  <div className="card-body">
-                    <div className="row no-gutters align-items-center">
-                      <div className="col mr-2">
-                        <div className="text-xs font-weight-bold text-success text-uppercase mb-1">
-                          Total Bookings
-                        </div>
-                        <div className="h5 mb-0 font-weight-bold text-gray-800">{stats.totalBookings}</div>
-                      </div>
-                      <div className="col-auto">
-                        <i className="fas fa-calendar fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-xl-3 col-md-6 mb-4">
-                <div className="card border-left-warning shadow h-100 py-2">
-                  <div className="card-body">
-                    <div className="row no-gutters align-items-center">
-                      <div className="col mr-2">
-                        <div className="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                          Pending Bookings
-                        </div>
-                        <div className="h5 mb-0 font-weight-bold text-gray-800">{stats.pendingBookings}</div>
-                      </div>
-                      <div className="col-auto">
-                        <i className="fas fa-clock fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-xl-3 col-md-6 mb-4">
-                <div className="card border-left-info shadow h-100 py-2">
-                  <div className="card-body">
-                    <div className="row no-gutters align-items-center">
-                      <div className="col mr-2">
-                        <div className="text-xs font-weight-bold text-info text-uppercase mb-1">
-                          Total Revenue
-                        </div>
-                        <div className="h5 mb-0 font-weight-bold text-gray-800">₹{stats.totalRevenue.toLocaleString()}</div>
-                      </div>
-                      <div className="col-auto">
-                        <i className="fas fa-rupee-sign fa-2x text-gray-300"></i>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            {/* Statistics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatsCard
+                label="Total Users"
+                value={stats.totalUsers.toString()}
+                icon={Users}
+              />
+              <StatsCard
+                label="Total Bookings"
+                value={stats.totalBookings.toString()}
+                icon={Calendar}
+              />
+              <StatsCard
+                label="Pending Bookings"
+                value={stats.pendingBookings.toString()}
+                icon={Calendar}
+              />
+              <StatsCard
+                label="Total Revenue"
+                value={`₹${stats.totalRevenue.toLocaleString()}`}
+                icon={Shield}
+              />
             </div>
 
-            {/* Recent Activity */}
-            <div className="row">
-              <div className="col-lg-6">
-                <div className="card shadow mb-4">
-                  <div className="card-header py-3">
-                    <h6 className="m-0 font-weight-bold text-primary">Recent Bookings</h6>
-                  </div>
-                  <div className="card-body">
-                    {bookings.slice(0, 5).map((booking) => (
-                      <div key={booking._id} className="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                          <div className="font-weight-bold">{booking.serviceCategory}</div>
-                          <small className="text-muted">{booking.pickupLocation} → {booking.dropLocation}</small>
-                        </div>
-                        <span className={`badge ${booking.status === 'pending' ? 'bg-warning' : booking.status === 'confirmed' ? 'bg-success' : 'bg-secondary'}`}>
-                          {booking.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            {/* Recent Activity Cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Bookings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Bookings</CardTitle>
+                  <CardDescription>Latest booking activities</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {bookings.slice(0, 5).length === 0 ? (
+                    <EmptyState
+                      title="No bookings yet"
+                      description="No recent booking activity to display"
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      {bookings.slice(0, 5).map((booking) => (
+                        <motion.div
+                          key={booking._id}
+                          initial={{ opacity: 0, x: -4 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex justify-between items-start p-3 rounded-lg bg-card hover:bg-muted transition-colors"
+                        >
+                          <div>
+                            <p className="font-medium text-foreground">{booking.serviceCategory}</p>
+                            <p className="text-xs text-muted mt-1">
+                              {booking.pickupLocation} → {booking.dropLocation}
+                            </p>
+                          </div>
+                          <StatusBadge status={booking.status as any} />
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-              <div className="col-lg-6">
-                <div className="card shadow mb-4">
-                  <div className="card-header py-3">
-                    <h6 className="m-0 font-weight-bold text-primary">Recent Users</h6>
-                  </div>
-                  <div className="card-body">
-                    {users.slice(0, 5).map((user) => (
-                      <div key={user._id} className="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                          <div className="font-weight-bold">{user.name}</div>
-                          <small className="text-muted">{user.email}</small>
-                        </div>
-                        <span className={`badge ${user.isActive ? 'bg-success' : 'bg-danger'}`}>
-                          {user.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              {/* Recent Users */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Users</CardTitle>
+                  <CardDescription>Latest user registrations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {users.slice(0, 5).length === 0 ? (
+                    <EmptyState
+                      title="No users yet"
+                      description="No recent user registrations to display"
+                    />
+                  ) : (
+                    <div className="space-y-3">
+                      {users.slice(0, 5).map((u) => (
+                        <motion.div
+                          key={u._id}
+                          initial={{ opacity: 0, x: -4 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex justify-between items-start p-3 rounded-lg bg-card hover:bg-muted transition-colors"
+                        >
+                          <div>
+                            <p className="font-medium text-foreground">{u.name}</p>
+                            <p className="text-xs text-muted mt-1">{u.email}</p>
+                          </div>
+                          <StatusBadge
+                            status={u.isActive ? 'confirmed' : 'cancelled'}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Users Tab */}
         {activeTab === 'users' && (
-          <div className="tab-pane fade show active">
-            <div className="card shadow">
-              <div className="card-header py-3">
-                <h6 className="m-0 font-weight-bold text-primary">Manage Users</h6>
-              </div>
-              <div className="card-body">
-                <div className="table-responsive">
-                  <table className="table table-bordered">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Joined</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {users.map((user) => (
-                        <tr key={user._id}>
-                          <td>{user.name}</td>
-                          <td>{user.email}</td>
-                          <td>{user.phone}</td>
-                          <td>
-                            <span className={`badge ${user.role === 'admin' ? 'bg-danger' : 'bg-primary'}`}>
-                              {user.role}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`badge ${user.isActive ? 'bg-success' : 'bg-danger'}`}>
-                              {user.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                          <td>
-                            <button
-                              className={`btn btn-sm ${user.isActive ? 'btn-warning' : 'btn-success'}`}
-                              onClick={() => handleToggleUserStatus(user._id, !user.isActive)}
-                            >
-                              {user.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                          </td>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Users</CardTitle>
+                <CardDescription>View and manage user accounts and permissions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {users.length === 0 ? (
+                  <EmptyState
+                    title="No users found"
+                    description="There are no users in the system yet"
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-4 font-medium text-muted">Name</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Email</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Phone</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Role</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Status</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Joined</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
+                      </thead>
+                      <tbody>
+                        {users.map((u) => (
+                          <motion.tr
+                            key={u._id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
+                          >
+                            <td className="py-3 px-4">{u.name}</td>
+                            <td className="py-3 px-4 text-muted">{u.email}</td>
+                            <td className="py-3 px-4 text-muted">{u.phone}</td>
+                            <td className="py-3 px-4">
+                              <StatusBadge
+                                status={u.role === 'admin' ? 'confirmed' : 'pending'}
+                              />
+                            </td>
+                            <td className="py-3 px-4">
+                              <StatusBadge
+                                status={u.isActive ? 'confirmed' : 'cancelled'}
+                              />
+                            </td>
+                            <td className="py-3 px-4 text-muted text-xs">
+                              {new Date(u.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-4">
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleToggleUserStatus(u._id, !u.isActive)}
+                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                  u.isActive
+                                    ? 'bg-warning/20 text-warning hover:bg-warning/30'
+                                    : 'bg-success/20 text-success hover:bg-success/30'
+                                }`}
+                              >
+                                {u.isActive ? 'Deactivate' : 'Activate'}
+                              </motion.button>
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
 
         {/* Bookings Tab */}
         {activeTab === 'bookings' && (
-          <div className="tab-pane fade show active">
-            <div className="card shadow">
-              <div className="card-header py-3">
-                <h6 className="m-0 font-weight-bold text-primary">Manage Bookings</h6>
-              </div>
-              <div className="card-body">
-                <div className="table-responsive">
-                  <table className="table table-bordered">
-                    <thead>
-                      <tr>
-                        <th>Customer</th>
-                        <th>Service</th>
-                        <th>Route</th>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bookings.map((booking) => (
-                        <tr key={booking._id}>
-                          <td>{booking.user?.name || 'N/A'}</td>
-                          <td>{booking.serviceCategory}</td>
-                          <td>{booking.pickupLocation} → {booking.dropLocation}</td>
-                          <td>{new Date(booking.pickupDate).toLocaleDateString()}</td>
-                          <td>₹{booking.totalAmount}</td>
-                          <td>
-                            <span className={`badge ${booking.status === 'pending' ? 'bg-warning' : booking.status === 'confirmed' ? 'bg-success' : 'bg-secondary'}`}>
-                              {booking.status}
-                            </span>
-                          </td>
-                          <td>
-                            <select
-                              className="form-select form-select-sm"
-                              value={booking.status}
-                              onChange={(e) => handleUpdateBookingStatus(booking._id, e.target.value)}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="confirmed">Confirmed</option>
-                              <option value="in-progress">In Progress</option>
-                              <option value="completed">Completed</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                          </td>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Bookings</CardTitle>
+                <CardDescription>View and manage transportation bookings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {bookings.length === 0 ? (
+                  <EmptyState
+                    title="No bookings found"
+                    description="There are no bookings in the system yet"
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-4 font-medium text-muted">Customer</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Service</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Route</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Date</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Amount</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Status</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
+                      </thead>
+                      <tbody>
+                        {bookings.map((booking) => (
+                          <motion.tr
+                            key={booking._id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
+                          >
+                            <td className="py-3 px-4">{booking.user?.name || 'N/A'}</td>
+                            <td className="py-3 px-4">{booking.serviceCategory}</td>
+                            <td className="py-3 px-4 text-muted text-xs">
+                              {booking.pickupLocation} → {booking.dropLocation}
+                            </td>
+                            <td className="py-3 px-4 text-muted text-xs">
+                              {new Date(booking.pickupDate).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-4 font-medium">₹{booking.totalAmount}</td>
+                            <td className="py-3 px-4">
+                              <StatusBadge status={booking.status as any} />
+                            </td>
+                            <td className="py-3 px-4">
+                              <select
+                                value={booking.status}
+                                onChange={(e) =>
+                                  handleUpdateBookingStatus(booking._id, e.target.value)
+                                }
+                                className="px-3 py-1 rounded text-xs bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0"
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="confirmed">Confirmed</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
 
         {/* Services Tab */}
         {activeTab === 'services' && (
-          <div className="tab-pane fade show active">
-            <div className="card shadow">
-              <div className="card-header py-3">
-                <h6 className="m-0 font-weight-bold text-primary">Manage Services</h6>
-              </div>
-              <div className="card-body">
-                <div className="table-responsive">
-                  <table className="table table-bordered">
-                    <thead>
-                      <tr>
-                        <th>Service Name</th>
-                        <th>Category</th>
-                        <th>Description</th>
-                        <th>Base Price</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {services.map((service) => (
-                        <tr key={service._id}>
-                          <td>{service.name}</td>
-                          <td>{service.category}</td>
-                          <td>{service.description}</td>
-                          <td>₹{service.basePrice}</td>
-                          <td>
-                            <span className={`badge ${service.isActive ? 'bg-success' : 'bg-danger'}`}>
-                              {service.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              className={`btn btn-sm ${service.isActive ? 'btn-warning' : 'btn-success'}`}
-                              onClick={() => handleToggleServiceStatus(service._id, !service.isActive)}
-                            >
-                              {service.isActive ? 'Deactivate' : 'Activate'}
-                            </button>
-                          </td>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Services</CardTitle>
+                <CardDescription>View and manage available transportation services</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {services.length === 0 ? (
+                  <EmptyState
+                    title="No services found"
+                    description="There are no services in the system yet"
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-4 font-medium text-muted">Service Name</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Category</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Description</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Base Price</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Status</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
+                      </thead>
+                      <tbody>
+                        {services.map((service) => (
+                          <motion.tr
+                            key={service._id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
+                          >
+                            <td className="py-3 px-4 font-medium">{service.name}</td>
+                            <td className="py-3 px-4 text-muted">{service.category}</td>
+                            <td className="py-3 px-4 text-muted text-xs">{service.description}</td>
+                            <td className="py-3 px-4">₹{service.basePrice}</td>
+                            <td className="py-3 px-4">
+                              <StatusBadge
+                                status={service.isActive ? 'confirmed' : 'cancelled'}
+                              />
+                            </td>
+                            <td className="py-3 px-4">
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() =>
+                                  handleToggleServiceStatus(service._id, !service.isActive)
+                                }
+                                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                  service.isActive
+                                    ? 'bg-warning/20 text-warning hover:bg-warning/30'
+                                    : 'bg-success/20 text-success hover:bg-success/30'
+                                }`}
+                              >
+                                {service.isActive ? 'Deactivate' : 'Activate'}
+                              </motion.button>
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;
