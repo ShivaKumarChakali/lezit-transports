@@ -3,14 +3,75 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
-import { Shield, Users, Calendar, Cog } from 'lucide-react';
+import { Shield, Users, Calendar, Cog, Briefcase, UserRound } from 'lucide-react';
 import apiService from '../services/api';
-import { DashboardStats, AdminUser, AdminBooking, AdminService } from '../types';
+import { DashboardStats, AdminUser, AdminBooking, AdminService, User } from '../types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../premium/components/ui/Card';
 import { StatsCard } from '../premium/components/ui/StatsCard';
 import { StatusBadge } from '../premium/components/ui/StatusBadge';
 import { Skeleton } from '../premium/components/ui/Skeleton';
 import { EmptyState } from '../premium/components/ui/EmptyState';
+
+const bookingFlowStatusOptions = [
+  { value: 'primary', label: '1. Primary (Order Received)' },
+  { value: 'confirmation_call_pending', label: '2. Confirmation Call Pending' },
+  { value: 'details_confirmed', label: '3. Details Confirmed' },
+  { value: 'provider_search', label: '4. Searching Service Provider' },
+  { value: 'updated', label: '4A. Updated' },
+  { value: 'not_available', label: '4B. Not Available' },
+  { value: 'quotation_shared', label: '5. Quotation Shared' },
+  { value: 'quoted', label: '6. Quoted (Advance Pending/Processing)' },
+  { value: 'cancelled', label: '6A. Cancelled' },
+  { value: 'expired', label: '6B. Expired' },
+  { value: 'advance_received', label: '6C. Advance Received' },
+  { value: 'customer_id_generated', label: '7. Customer ID Generated' },
+  { value: 'sales_order_created', label: '8. Sales Order Created' },
+  { value: 'purchase_order_created', label: '9. Purchase Order Created' },
+  { value: 'transactions_updated', label: '10. Transactions Updated' },
+  { value: 'in_progress_cid', label: '11. In Progress (CID Pending)' },
+  { value: 'in_progress_so', label: '11. In Progress (SO Pending)' },
+  { value: 'in_progress_po', label: '11. In Progress (PO Pending)' },
+  { value: 'in_progress_txn', label: '11. In Progress (TXN Pending)' },
+  { value: 'in_progress_oc', label: '11. In Progress (Order Completion Pending)' },
+  { value: 'order_completed', label: '12. Order Completed' },
+  { value: 'invoice_bill_generated', label: '13. Invoice & Bill Generated' },
+  { value: 'dues_closed', label: '14. Dues Closed' },
+  { value: 'closure_pending', label: '15. Pending (Payment/Feedback)' },
+  { value: 'closure_payment_pending', label: '15A. Payment Pending' },
+  { value: 'closure_feedback_pending', label: '15B. Feedback Pending' },
+  { value: 'closure_completed', label: '15C. Closure Completed' },
+  { value: 'documented', label: '16. Documented' },
+  { value: 'details_updated_online_offline', label: '17. Details Updated Online/Offline' }
+];
+
+const formatBookingFlowStatus = (status?: string) => {
+  if (!status) return 'N/A';
+  const option = bookingFlowStatusOptions.find((item) => item.value === status);
+  if (option) return option.label;
+  return status
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+type ProviderFormData = {
+  name: string;
+  email: string;
+  phone: string;
+  businessName: string;
+  businessType: 'car_rental' | 'taxi_service' | 'bus_service' | 'truck_service' | 'other';
+  businessLicense: string;
+  businessAddress: string;
+};
+
+type DriverFormData = {
+  name: string;
+  email: string;
+  phone: string;
+  licenseNumber: string;
+  licenseExpiry: string;
+  vehicleType: 'car' | 'suv' | 'van' | 'bus' | 'truck' | 'bike';
+  experience: string;
+};
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -26,6 +87,28 @@ const AdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [services, setServices] = useState<AdminService[]>([]);
+  const [serviceProviders, setServiceProviders] = useState<User[]>([]);
+  const [drivers, setDrivers] = useState<User[]>([]);
+  const [providerForm, setProviderForm] = useState<ProviderFormData>({
+    name: '',
+    email: '',
+    phone: '',
+    businessName: '',
+    businessType: 'other',
+    businessLicense: '',
+    businessAddress: ''
+  });
+  const [driverForm, setDriverForm] = useState<DriverFormData>({
+    name: '',
+    email: '',
+    phone: '',
+    licenseNumber: '',
+    licenseExpiry: '',
+    vehicleType: 'car',
+    experience: '0'
+  });
+  const [editingProviderId, setEditingProviderId] = useState<string | null>(null);
+  const [editingDriverId, setEditingDriverId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -63,6 +146,18 @@ const AdminDashboard: React.FC = () => {
       if (servicesResponse.success && servicesResponse.data) {
         setServices(servicesResponse.data);
       }
+
+      // Fetch service providers
+      const providersResponse = await apiService.getAdminServiceProviders();
+      if (providersResponse.success && providersResponse.data) {
+        setServiceProviders(providersResponse.data);
+      }
+
+      // Fetch drivers
+      const driversResponse = await apiService.getAdminDrivers();
+      if (driversResponse.success && driversResponse.data) {
+        setDrivers(driversResponse.data);
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
@@ -71,18 +166,18 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleUpdateBookingStatus = async (bookingId: string, status: string) => {
+  const handleUpdateBookingStatus = async (booking: AdminBooking, orderStatus: string) => {
     try {
-      const response = await apiService.updateBookingStatus(bookingId, status);
+      const response = await apiService.updateBookingStatus(booking._id, booking.status, orderStatus);
       if (response.success) {
-        toast.success('Booking status updated successfully');
+        toast.success('Booking workflow status updated successfully');
         fetchDashboardData();
       } else {
-        toast.error(response.message || 'Failed to update booking status');
+        toast.error(response.message || 'Failed to update booking workflow status');
       }
     } catch (error) {
-      console.error('Error updating booking status:', error);
-      toast.error('Failed to update booking status');
+      console.error('Error updating booking workflow status:', error);
+      toast.error('Failed to update booking workflow status');
     }
   };
 
@@ -116,6 +211,146 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const resetProviderForm = () => {
+    setProviderForm({
+      name: '',
+      email: '',
+      phone: '',
+      businessName: '',
+      businessType: 'other',
+      businessLicense: '',
+      businessAddress: ''
+    });
+    setEditingProviderId(null);
+  };
+
+  const resetDriverForm = () => {
+    setDriverForm({
+      name: '',
+      email: '',
+      phone: '',
+      licenseNumber: '',
+      licenseExpiry: '',
+      vehicleType: 'car',
+      experience: '0'
+    });
+    setEditingDriverId(null);
+  };
+
+  const handleProviderSubmit = async () => {
+    try {
+      if (editingProviderId) {
+        const response = await apiService.updateAdminServiceProvider(editingProviderId, providerForm);
+        if (!response.success) {
+          toast.error(response.message || 'Failed to update service provider');
+          return;
+        }
+        toast.success('Service provider updated successfully');
+      } else {
+        const response = await apiService.createAdminServiceProvider(providerForm);
+        if (!response.success) {
+          toast.error(response.message || 'Failed to add service provider');
+          return;
+        }
+        toast.success('Service provider added successfully');
+      }
+
+      resetProviderForm();
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error saving service provider:', error);
+      toast.error('Failed to save service provider');
+    }
+  };
+
+  const handleEditProvider = (provider: User) => {
+    setEditingProviderId(provider._id || provider.id || '');
+    setProviderForm({
+      name: provider.name || '',
+      email: provider.email || '',
+      phone: provider.phone || '',
+      businessName: provider.businessName || '',
+      businessType: provider.businessType || 'other',
+      businessLicense: provider.businessLicense || '',
+      businessAddress: provider.businessAddress || ''
+    });
+  };
+
+  const handleRemoveProvider = async (providerId: string) => {
+    try {
+      const response = await apiService.removeAdminServiceProvider(providerId);
+      if (response.success) {
+        toast.success('Service provider removed successfully');
+        fetchDashboardData();
+      } else {
+        toast.error(response.message || 'Failed to remove service provider');
+      }
+    } catch (error) {
+      console.error('Error removing service provider:', error);
+      toast.error('Failed to remove service provider');
+    }
+  };
+
+  const handleDriverSubmit = async () => {
+    try {
+      if (editingDriverId) {
+        const response = await apiService.updateAdminDriver(editingDriverId, {
+          ...driverForm,
+          experience: Number(driverForm.experience)
+        });
+        if (!response.success) {
+          toast.error(response.message || 'Failed to update driver');
+          return;
+        }
+        toast.success('Driver updated successfully');
+      } else {
+        const response = await apiService.createAdminDriver({
+          ...driverForm,
+          experience: Number(driverForm.experience)
+        });
+        if (!response.success) {
+          toast.error(response.message || 'Failed to add driver');
+          return;
+        }
+        toast.success('Driver added successfully');
+      }
+
+      resetDriverForm();
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error saving driver:', error);
+      toast.error('Failed to save driver');
+    }
+  };
+
+  const handleEditDriver = (driver: User) => {
+    setEditingDriverId(driver._id || driver.id || '');
+    setDriverForm({
+      name: driver.name || '',
+      email: driver.email || '',
+      phone: driver.phone || '',
+      licenseNumber: driver.licenseNumber || '',
+      licenseExpiry: driver.licenseExpiry ? String(driver.licenseExpiry).slice(0, 10) : '',
+      vehicleType: driver.vehicleType || 'car',
+      experience: String(driver.experience || 0)
+    });
+  };
+
+  const handleRemoveDriver = async (driverId: string) => {
+    try {
+      const response = await apiService.removeAdminDriver(driverId);
+      if (response.success) {
+        toast.success('Driver removed successfully');
+        fetchDashboardData();
+      } else {
+        toast.error(response.message || 'Failed to remove driver');
+      }
+    } catch (error) {
+      console.error('Error removing driver:', error);
+      toast.error('Failed to remove driver');
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full max-w-6xl mx-auto px-4 py-8">
@@ -132,6 +367,8 @@ const AdminDashboard: React.FC = () => {
     { id: 'overview', label: 'Overview', icon: Shield },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'bookings', label: 'Bookings', icon: Calendar },
+    { id: 'service-providers', label: 'Service Providers', icon: Briefcase },
+    { id: 'drivers', label: 'Drivers', icon: UserRound },
     { id: 'services', label: 'Services', icon: Cog },
   ];
 
@@ -392,8 +629,9 @@ const AdminDashboard: React.FC = () => {
                           <th className="text-left py-3 px-4 font-medium text-muted">Route</th>
                           <th className="text-left py-3 px-4 font-medium text-muted">Date</th>
                           <th className="text-left py-3 px-4 font-medium text-muted">Amount</th>
-                          <th className="text-left py-3 px-4 font-medium text-muted">Status</th>
-                          <th className="text-left py-3 px-4 font-medium text-muted">Actions</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Booking Status</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Workflow Status</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Update Workflow</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -417,22 +655,319 @@ const AdminDashboard: React.FC = () => {
                               <StatusBadge status={booking.status as any} />
                             </td>
                             <td className="py-3 px-4">
+                              <StatusBadge
+                                status="default"
+                                label={formatBookingFlowStatus(booking.orderStatus || 'primary')}
+                                className="max-w-[270px] truncate"
+                                title={formatBookingFlowStatus(booking.orderStatus || 'primary')}
+                              />
+                            </td>
+                            <td className="py-3 px-4">
                               <select
-                                value={booking.status}
+                                value={booking.orderStatus || 'primary'}
                                 onChange={(e) =>
-                                  handleUpdateBookingStatus(booking._id, e.target.value)
+                                  handleUpdateBookingStatus(booking, e.target.value)
                                 }
                                 className="px-3 py-1 rounded text-xs bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0"
                               >
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
+                                {bookingFlowStatusOptions.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
                               </select>
                             </td>
                           </motion.tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Service Providers Tab */}
+        {activeTab === 'service-providers' && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Service Providers</CardTitle>
+                <CardDescription>Add, edit and remove providers collected from calls or website requests</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    value={providerForm.name}
+                    onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value })}
+                    placeholder="Provider name"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <input
+                    value={providerForm.email}
+                    onChange={(e) => setProviderForm({ ...providerForm, email: e.target.value })}
+                    placeholder="Email"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <input
+                    value={providerForm.phone}
+                    onChange={(e) => setProviderForm({ ...providerForm, phone: e.target.value })}
+                    placeholder="Phone"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <input
+                    value={providerForm.businessName}
+                    onChange={(e) => setProviderForm({ ...providerForm, businessName: e.target.value })}
+                    placeholder="Business name"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <select
+                    value={providerForm.businessType}
+                    onChange={(e) => setProviderForm({ ...providerForm, businessType: e.target.value as ProviderFormData['businessType'] })}
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  >
+                    <option value="car_rental">Car Rental</option>
+                    <option value="taxi_service">Taxi Service</option>
+                    <option value="bus_service">Bus Service</option>
+                    <option value="truck_service">Truck Service</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <input
+                    value={providerForm.businessLicense}
+                    onChange={(e) => setProviderForm({ ...providerForm, businessLicense: e.target.value })}
+                    placeholder="Business license"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <input
+                    value={providerForm.businessAddress}
+                    onChange={(e) => setProviderForm({ ...providerForm, businessAddress: e.target.value })}
+                    placeholder="Business address"
+                    className="md:col-span-2 px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleProviderSubmit}
+                    className="px-4 py-2 rounded bg-primary text-primary-foreground text-sm font-medium"
+                  >
+                    {editingProviderId ? 'Update Provider' : 'Add Provider'}
+                  </button>
+                  {editingProviderId && (
+                    <button
+                      onClick={resetProviderForm}
+                      className="px-4 py-2 rounded bg-muted text-foreground text-sm font-medium"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+
+                {serviceProviders.length === 0 ? (
+                  <EmptyState
+                    title="No service providers"
+                    description="Add providers here to keep call-based onboarding in one place"
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-4 font-medium text-muted">Name</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Business</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Phone</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Email</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Status</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {serviceProviders.map((provider) => {
+                          const providerId = provider._id || provider.id;
+                          return (
+                            <motion.tr
+                              key={providerId}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
+                            >
+                              <td className="py-3 px-4">{provider.name}</td>
+                              <td className="py-3 px-4 text-muted">{provider.businessName || 'N/A'}</td>
+                              <td className="py-3 px-4 text-muted">{provider.phone}</td>
+                              <td className="py-3 px-4 text-muted">{provider.email}</td>
+                              <td className="py-3 px-4">
+                                <StatusBadge status={provider.isActive ? 'confirmed' : 'cancelled'} />
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleEditProvider(provider)}
+                                    className="px-3 py-1 rounded text-xs bg-primary/15 text-primary"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => providerId && handleRemoveProvider(providerId)}
+                                    className="px-3 py-1 rounded text-xs bg-danger/15 text-danger"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </td>
+                            </motion.tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Drivers Tab */}
+        {activeTab === 'drivers' && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Drivers</CardTitle>
+                <CardDescription>Add, edit and remove drivers from admin panel</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <input
+                    value={driverForm.name}
+                    onChange={(e) => setDriverForm({ ...driverForm, name: e.target.value })}
+                    placeholder="Driver name"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <input
+                    value={driverForm.email}
+                    onChange={(e) => setDriverForm({ ...driverForm, email: e.target.value })}
+                    placeholder="Email"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <input
+                    value={driverForm.phone}
+                    onChange={(e) => setDriverForm({ ...driverForm, phone: e.target.value })}
+                    placeholder="Phone"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <input
+                    value={driverForm.licenseNumber}
+                    onChange={(e) => setDriverForm({ ...driverForm, licenseNumber: e.target.value })}
+                    placeholder="License number"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <input
+                    type="date"
+                    value={driverForm.licenseExpiry}
+                    onChange={(e) => setDriverForm({ ...driverForm, licenseExpiry: e.target.value })}
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                  <select
+                    value={driverForm.vehicleType}
+                    onChange={(e) => setDriverForm({ ...driverForm, vehicleType: e.target.value as DriverFormData['vehicleType'] })}
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  >
+                    <option value="car">Car</option>
+                    <option value="suv">SUV</option>
+                    <option value="van">Van</option>
+                    <option value="bus">Bus</option>
+                    <option value="truck">Truck</option>
+                    <option value="bike">Bike</option>
+                  </select>
+                  <input
+                    value={driverForm.experience}
+                    onChange={(e) => setDriverForm({ ...driverForm, experience: e.target.value })}
+                    placeholder="Experience (years)"
+                    className="px-3 py-2 rounded bg-input border border-border text-foreground"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDriverSubmit}
+                    className="px-4 py-2 rounded bg-primary text-primary-foreground text-sm font-medium"
+                  >
+                    {editingDriverId ? 'Update Driver' : 'Add Driver'}
+                  </button>
+                  {editingDriverId && (
+                    <button
+                      onClick={resetDriverForm}
+                      className="px-4 py-2 rounded bg-muted text-foreground text-sm font-medium"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+
+                {drivers.length === 0 ? (
+                  <EmptyState
+                    title="No drivers"
+                    description="Add drivers here for phone-call onboarding and allocation"
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left py-3 px-4 font-medium text-muted">Name</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Phone</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Vehicle</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">License</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Experience</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Status</th>
+                          <th className="text-left py-3 px-4 font-medium text-muted">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {drivers.map((driver) => {
+                          const driverId = driver._id || driver.id;
+                          return (
+                            <motion.tr
+                              key={driverId}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
+                            >
+                              <td className="py-3 px-4">{driver.name}</td>
+                              <td className="py-3 px-4 text-muted">{driver.phone}</td>
+                              <td className="py-3 px-4 text-muted capitalize">{driver.vehicleType || 'N/A'}</td>
+                              <td className="py-3 px-4 text-muted">{driver.licenseNumber || 'N/A'}</td>
+                              <td className="py-3 px-4 text-muted">{driver.experience || 0} yrs</td>
+                              <td className="py-3 px-4">
+                                <StatusBadge status={driver.isActive ? 'confirmed' : 'cancelled'} />
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleEditDriver(driver)}
+                                    className="px-3 py-1 rounded text-xs bg-primary/15 text-primary"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => driverId && handleRemoveDriver(driverId)}
+                                    className="px-3 py-1 rounded text-xs bg-danger/15 text-danger"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </td>
+                            </motion.tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

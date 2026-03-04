@@ -57,7 +57,41 @@ export interface IBooking {
   goodsDescription?: string;
   vehicleType?: string;
   driverRequired?: boolean;
-  orderStatus: 'primary' | 'updated' | 'quotation_shared' | 'confirmed' | 'in_progress' | 'pending_payment' | 'completed' | 'pending_feedback' | 'cancelled';
+  orderStatus:
+    | 'primary'
+    | 'confirmation_call_pending'
+    | 'details_confirmed'
+    | 'provider_search'
+    | 'updated'
+    | 'not_available'
+    | 'quotation_shared'
+    | 'quoted'
+    | 'advance_received'
+    | 'customer_id_generated'
+    | 'sales_order_created'
+    | 'purchase_order_created'
+    | 'transactions_updated'
+    | 'in_progress_cid'
+    | 'in_progress_so'
+    | 'in_progress_po'
+    | 'in_progress_txn'
+    | 'in_progress_oc'
+    | 'order_completed'
+    | 'invoice_bill_generated'
+    | 'dues_closed'
+    | 'closure_pending'
+    | 'closure_payment_pending'
+    | 'closure_feedback_pending'
+    | 'closure_completed'
+    | 'documented'
+    | 'details_updated_online_offline'
+    | 'confirmed'
+    | 'in_progress'
+    | 'pending_payment'
+    | 'pending_feedback'
+    | 'completed'
+    | 'expired'
+    | 'cancelled';
   status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled'; // Legacy status for backward compatibility
   totalAmount: number;
   paymentStatus: 'pending' | 'paid' | 'failed';

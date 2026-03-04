@@ -6,7 +6,15 @@ import {
   getAdminBookings, 
   updateBookingStatus, 
   updateUserStatus, 
-  updateServiceStatus 
+  updateServiceStatus,
+  getAdminServiceProviders,
+  createAdminServiceProvider,
+  updateAdminServiceProvider,
+  removeAdminServiceProvider,
+  getAdminDrivers,
+  createAdminDriver,
+  updateAdminDriver,
+  removeAdminDriver
 } from '../controllers/adminController';
 
 const router = express.Router();
@@ -24,6 +32,18 @@ router.put('/users/:userId/status', updateUserStatus);
 // Booking management
 router.get('/bookings', getAdminBookings);
 router.put('/bookings/:bookingId/status', updateBookingStatus);
+
+// Service providers management
+router.get('/service-providers', getAdminServiceProviders);
+router.post('/service-providers', createAdminServiceProvider);
+router.put('/service-providers/:providerId', updateAdminServiceProvider);
+router.delete('/service-providers/:providerId', removeAdminServiceProvider);
+
+// Drivers management
+router.get('/drivers', getAdminDrivers);
+router.post('/drivers', createAdminDriver);
+router.put('/drivers/:driverId', updateAdminDriver);
+router.delete('/drivers/:driverId', removeAdminDriver);
 
 // Service management
 router.put('/services/:serviceId/status', updateServiceStatus);

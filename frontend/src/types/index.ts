@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  _id?: string;
   name: string;
   email: string;
   phone: string;
@@ -69,6 +70,7 @@ export interface Booking {
   vehicleType?: string;
   driverRequired?: boolean;
   status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
+  orderStatus?: string;
   totalAmount: number;
   paymentStatus: 'pending' | 'paid' | 'failed';
   paymentMethod?: string;
@@ -123,12 +125,14 @@ export interface AdminUser {
 export interface AdminBooking {
   _id: string;
   userId: string;
+  orderId?: string;
   serviceType: string;
   serviceCategory: string;
   pickupLocation: string;
   dropLocation: string;
   pickupDate: string;
   status: string;
+  orderStatus?: string;
   totalAmount: number;
   createdAt: string;
   user?: {

@@ -141,8 +141,9 @@ export const bookingsAPI = {
     return response.data;
   },
 
-  updateBookingStatus: async (bookingId: string, status: string): Promise<ApiResponse<Booking>> => {
-    const response: AxiosResponse<ApiResponse<Booking>> = await api.put(`/admin/bookings/${bookingId}/status`, { status });
+  updateBookingStatus: async (bookingId: string, status: string, orderStatus?: string): Promise<ApiResponse<Booking>> => {
+    const payload = orderStatus ? { status, orderStatus } : { status };
+    const response: AxiosResponse<ApiResponse<Booking>> = await api.put(`/admin/bookings/${bookingId}/status`, payload);
     return response.data;
   },
 };
@@ -161,6 +162,46 @@ export const adminAPI = {
 
   getAdminBookings: async (): Promise<ApiResponse<AdminBooking[]>> => {
     const response: AxiosResponse<ApiResponse<AdminBooking[]>> = await api.get('/admin/bookings');
+    return response.data;
+  },
+
+  getAdminServiceProviders: async (): Promise<ApiResponse<User[]>> => {
+    const response: AxiosResponse<ApiResponse<User[]>> = await api.get('/admin/service-providers');
+    return response.data;
+  },
+
+  createAdminServiceProvider: async (providerData: Partial<User> & { password?: string }): Promise<ApiResponse<User>> => {
+    const response: AxiosResponse<ApiResponse<User>> = await api.post('/admin/service-providers', providerData);
+    return response.data;
+  },
+
+  updateAdminServiceProvider: async (providerId: string, providerData: Partial<User>): Promise<ApiResponse<User>> => {
+    const response: AxiosResponse<ApiResponse<User>> = await api.put(`/admin/service-providers/${providerId}`, providerData);
+    return response.data;
+  },
+
+  removeAdminServiceProvider: async (providerId: string): Promise<ApiResponse<void>> => {
+    const response: AxiosResponse<ApiResponse<void>> = await api.delete(`/admin/service-providers/${providerId}`);
+    return response.data;
+  },
+
+  getAdminDrivers: async (): Promise<ApiResponse<User[]>> => {
+    const response: AxiosResponse<ApiResponse<User[]>> = await api.get('/admin/drivers');
+    return response.data;
+  },
+
+  createAdminDriver: async (driverData: Partial<User> & { password?: string }): Promise<ApiResponse<User>> => {
+    const response: AxiosResponse<ApiResponse<User>> = await api.post('/admin/drivers', driverData);
+    return response.data;
+  },
+
+  updateAdminDriver: async (driverId: string, driverData: Partial<User>): Promise<ApiResponse<User>> => {
+    const response: AxiosResponse<ApiResponse<User>> = await api.put(`/admin/drivers/${driverId}`, driverData);
+    return response.data;
+  },
+
+  removeAdminDriver: async (driverId: string): Promise<ApiResponse<void>> => {
+    const response: AxiosResponse<ApiResponse<void>> = await api.delete(`/admin/drivers/${driverId}`);
     return response.data;
   },
 
@@ -211,6 +252,14 @@ const apiService = {
   getAdminStats: adminAPI.getAdminStats,
   getAdminUsers: adminAPI.getAdminUsers,
   getAdminBookings: adminAPI.getAdminBookings,
+  getAdminServiceProviders: adminAPI.getAdminServiceProviders,
+  createAdminServiceProvider: adminAPI.createAdminServiceProvider,
+  updateAdminServiceProvider: adminAPI.updateAdminServiceProvider,
+  removeAdminServiceProvider: adminAPI.removeAdminServiceProvider,
+  getAdminDrivers: adminAPI.getAdminDrivers,
+  createAdminDriver: adminAPI.createAdminDriver,
+  updateAdminDriver: adminAPI.updateAdminDriver,
+  removeAdminDriver: adminAPI.removeAdminDriver,
   updateUserStatus: adminAPI.updateUserStatus,
   updateServiceStatus: adminAPI.updateServiceStatus,
 

@@ -65,7 +65,42 @@ const updateStatusValidation = [
     .withMessage('Invalid status value'),
   body('orderStatus')
     .optional()
-    .isIn(['primary', 'updated', 'quotation_shared', 'confirmed', 'in_progress', 'pending_payment', 'completed', 'pending_feedback', 'cancelled'])
+    .isIn([
+      'primary',
+      'confirmation_call_pending',
+      'details_confirmed',
+      'provider_search',
+      'updated',
+      'not_available',
+      'quotation_shared',
+      'quoted',
+      'advance_received',
+      'customer_id_generated',
+      'sales_order_created',
+      'purchase_order_created',
+      'transactions_updated',
+      'in_progress_cid',
+      'in_progress_so',
+      'in_progress_po',
+      'in_progress_txn',
+      'in_progress_oc',
+      'order_completed',
+      'invoice_bill_generated',
+      'dues_closed',
+      'closure_pending',
+      'closure_payment_pending',
+      'closure_feedback_pending',
+      'closure_completed',
+      'documented',
+      'details_updated_online_offline',
+      'confirmed',
+      'in_progress',
+      'pending_payment',
+      'completed',
+      'pending_feedback',
+      'expired',
+      'cancelled'
+    ])
     .withMessage('Invalid order status value')
 ];
 
