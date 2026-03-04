@@ -81,6 +81,50 @@ const sendViaSendGrid = async (
 const useSendGrid = (): boolean =>
   EMAIL_SERVICE === 'sendgrid' && Boolean(process.env.SENDGRID_API_KEY);
 
+const getBookingTrackingEmail = (): string =>
+  process.env.BOOKINGS_TRACK_EMAIL ||
+  process.env.EMAIL_BCC_BOOKINGS ||
+  'bookings@lezittransports.com';
+
+const sendBookingTrackingCopy = async (
+  from: string,
+  subject: string,
+  html: string,
+  customerEmail: string
+) => {
+  const trackingEmail = getBookingTrackingEmail();
+  if (!trackingEmail || trackingEmail.toLowerCase() === customerEmail.toLowerCase()) {
+    return;
+  }
+
+  try {
+    if (useSendGrid()) {
+      const trackingResult = await sendViaSendGrid(
+        trackingEmail,
+        from,
+        `[TRACK COPY] ${subject}`,
+        html
+      );
+      if (!trackingResult.success) {
+        console.warn('⚠️ Failed to send booking tracking copy:', trackingResult.error);
+      } else {
+        console.log('✅ Booking tracking copy sent to:', trackingEmail);
+      }
+      return;
+    }
+
+    await getBookingTransporter().sendMail({
+      from,
+      to: trackingEmail,
+      subject: `[TRACK COPY] ${subject}`,
+      html
+    });
+    console.log('✅ Booking tracking copy sent to:', trackingEmail);
+  } catch (trackingError: any) {
+    console.warn('⚠️ Failed to send booking tracking copy:', trackingError?.message || trackingError);
+  }
+};
+
 // Verify email configurations (runs on module load)
 const verifyEmailConfigs = async () => {
   const hasBookingCredentials = process.env.SMTP_USER_BOOKING && process.env.SMTP_PASS_BOOKING;
@@ -442,16 +486,16 @@ export const sendBookingConfirmation = async (bookingData: any, userEmail: strin
   }
   const template = emailTemplates.bookingConfirmation(bookingData);
   const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
-   const bcc =
-    process.env.EMAIL_BCC_BOOKINGS ||
-    process.env.SMTP_USER_BOOKING ||
-    process.env.SENDGRID_FROM_EMAIL ||
-    'bookings@lezittransports.com';
+  const bcc = process.env.EMAIL_BCC_BOOKINGS || undefined;
 
   if (useSendGrid()) {
     const result = await sendViaSendGrid(userEmail, from, template.subject, template.html, bcc);
-    if (result.success) console.log('✅ Booking confirmation email sent to:', userEmail);
-    else console.error('❌ Failed to send booking confirmation email:', result.error);
+    if (result.success) {
+      console.log('✅ Booking confirmation email sent to:', userEmail);
+      await sendBookingTrackingCopy(from, template.subject, template.html, userEmail);
+    } else {
+      console.error('❌ Failed to send booking confirmation email:', result.error);
+    }
     return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
   }
   try {
@@ -460,9 +504,10 @@ export const sendBookingConfirmation = async (bookingData: any, userEmail: strin
       to: userEmail,
       subject: template.subject,
       html: template.html,
-      bcc,
+      ...(bcc ? { bcc } : {}),
     });
     console.log('✅ Booking confirmation email sent to:', userEmail);
+    await sendBookingTrackingCopy(from, template.subject, template.html, userEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
     console.error('❌ Failed to send booking confirmation email:', error.message);
@@ -477,16 +522,16 @@ export const sendBookingCancellation = async (bookingData: any, userEmail: strin
   }
   const template = emailTemplates.bookingCancellation(bookingData);
   const from = process.env.SMTP_USER_BOOKING || process.env.SENDGRID_FROM_EMAIL || 'bookings@lezittransports.com';
-  const bcc =
-    process.env.EMAIL_BCC_BOOKINGS ||
-    process.env.SMTP_USER_BOOKING ||
-    process.env.SENDGRID_FROM_EMAIL ||
-    'bookings@lezittransports.com';
+  const bcc = process.env.EMAIL_BCC_BOOKINGS || undefined;
 
   if (useSendGrid()) {
     const result = await sendViaSendGrid(userEmail, from, template.subject, template.html, bcc);
-    if (result.success) console.log('✅ Booking cancellation email sent to:', userEmail);
-    else console.error('❌ Failed to send booking cancellation email:', result.error);
+    if (result.success) {
+      console.log('✅ Booking cancellation email sent to:', userEmail);
+      await sendBookingTrackingCopy(from, template.subject, template.html, userEmail);
+    } else {
+      console.error('❌ Failed to send booking cancellation email:', result.error);
+    }
     return result.success ? { success: true, messageId: result.messageId } : { success: false, error: result.error };
   }
   try {
@@ -495,9 +540,10 @@ export const sendBookingCancellation = async (bookingData: any, userEmail: strin
       to: userEmail,
       subject: template.subject,
       html: template.html,
-      bcc,
+      ...(bcc ? { bcc } : {}),
     });
     console.log('✅ Booking cancellation email sent to:', userEmail);
+    await sendBookingTrackingCopy(from, template.subject, template.html, userEmail);
     return { success: true, messageId: result.messageId };
   } catch (error: any) {
     console.error('❌ Failed to send booking cancellation email:', error.message);
